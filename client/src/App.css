@@ -2503,6 +2503,17 @@
     gap: 9px;
   }
 
+  .notification-panel {
+    position: fixed;
+    top: 86px;
+    right: 12px;
+    width: min(360px, calc(100vw - 24px));
+  }
+
+  .notification-list {
+    max-height: min(380px, calc(100dvh - 210px));
+  }
+
   .dashboard-content {
     padding: 24px 18px 37px;
   }
