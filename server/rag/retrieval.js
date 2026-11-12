@@ -1,5 +1,5 @@
 const KnowledgeChunk = require('../models/KnowledgeChunk');
-const { createEmbedding } = require('../services/ollamaService');
+const { createEmbedding, getEmbeddingModelId, getGeminiConfig } = require('../services/geminiService');
 
 const DEFAULT_INDEX = 'flowcare_vector_index';
 
@@ -35,12 +35,13 @@ function getRagConfig() {
 }
 
 function isMissingVectorIndex(error) {
-  return /search index not found|vector search index|needs to be indexed as vector|no vector index|index.*not configured|vector.*dimension|dimension.*vector/i
+  return /search index not found|vector search index|needs to be indexed as vector|needs to be indexed as filter|not indexed as filter|no vector index|index.*not configured|vector.*dimension|dimension.*vector/i
     .test(error?.message || '');
 }
 
 async function retrieveRelevantChunks(question) {
   const config = getRagConfig();
+  const embeddingModel = getEmbeddingModelId(getGeminiConfig());
   const queryVector = await createEmbedding(question);
   try {
     return await KnowledgeChunk.aggregate([
@@ -49,6 +50,7 @@ async function retrieveRelevantChunks(question) {
           index: config.indexName,
           path: 'embedding',
           queryVector,
+          filter: { embeddingModel: { $eq: embeddingModel } },
           numCandidates: Math.max(config.numCandidates, config.topK),
           limit: config.topK,
         },
@@ -67,7 +69,7 @@ async function retrieveRelevantChunks(question) {
   } catch (error) {
     if (isMissingVectorIndex(error)) {
       throw new RagError(
-        `MongoDB Atlas Vector Search index "${config.indexName}" is missing or not configured for the "embedding" field. Follow the Vector Search setup in README.md, including the dimension printed by the ingestion script.`,
+        `MongoDB Atlas Vector Search index "${config.indexName}" is missing or not configured for the "embedding" vector and "embeddingModel" filter fields. Follow the Vector Search setup in README.md, including the dimension printed by the ingestion script.`,
         503,
         'VECTOR_INDEX_UNAVAILABLE',
       );

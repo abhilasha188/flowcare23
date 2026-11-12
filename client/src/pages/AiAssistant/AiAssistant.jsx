@@ -93,8 +93,8 @@ function AiAssistant() {
   const chatBusy = sending || historyLoading;
   const visibleConversations = conversations.filter((item) => item.title.toLowerCase().includes(search.trim().toLowerCase()));
   const selectedConversation = conversations.find((item) => item.conversationId === conversationId);
-  const assistantReady = Boolean(assistantHealth?.success && assistantHealth?.ollama?.chatModelAvailable
-    && assistantHealth?.ollama?.embeddingModelAvailable && assistantHealth?.database === 'available');
+  const assistantReady = Boolean(assistantHealth?.success && assistantHealth?.gemini?.chatModelAvailable
+    && assistantHealth?.gemini?.embeddingModelAvailable && assistantHealth?.database === 'available');
 
   useEffect(() => {
     let active = true;
@@ -266,7 +266,7 @@ function AiAssistant() {
 
       <div className="ai-privacy-note" role="note">
         <ShieldCheck size={18} />
-        <span>Your cycle and symptom records are not attached. Your question and recent chat context are sent to the configured Ollama service to generate a reply.</span>
+        <span>Your cycle and symptom records are not attached. Your question, recent chat context, and retrieved educational excerpts are sent to Google Gemini to generate a reply.</span>
       </div>
 
       <div className="ai-workspace">

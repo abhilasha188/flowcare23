@@ -23,18 +23,22 @@ function responseStub() {
   };
 }
 
-test('reports actionable assistant health without exposing endpoint details', () => {
+test('reports actionable Gemini health without exposing endpoint details', () => {
   assert.equal(
-    getHealthMessage(true, { available: false, endpointError: 'unreachable' }, 8),
-    'The Ollama service is unreachable from the API. Check OLLAMA_BASE_URL and that its host is running.',
+    getHealthMessage(true, { configurationValid: false, endpointError: 'missing_api_key' }, 8, 0),
+    'GEMINI_API_KEY is not configured on the API server.',
   );
   assert.equal(
-    getHealthMessage(true, { available: false, endpointError: 'authentication' }, 8),
-    'Ollama rejected the request. Check the optional OLLAMA_API_KEY bearer token.',
+    getHealthMessage(true, { configurationValid: true, endpointError: 'authentication' }, 8, 0),
+    'Gemini rejected GEMINI_API_KEY. Check that the server-side key is valid and enabled.',
   );
   assert.equal(
-    getHealthMessage(true, { available: true, chatModelAvailable: false }, 8),
-    'The configured Ollama chat model is not installed on the service.',
+    getHealthMessage(true, { configurationValid: true, chatModelAvailable: false }, 8, 8),
+    'The configured Gemini chat model is unavailable to this API key.',
+  );
+  assert.equal(
+    getHealthMessage(true, { configurationValid: true, chatModelAvailable: true, embeddingModelAvailable: true }, 8, 0),
+    'The reviewed knowledge sources must be re-ingested with the configured Gemini embedding model before the assistant can answer.',
   );
 });
 

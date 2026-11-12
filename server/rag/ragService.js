@@ -1,6 +1,6 @@
 const { randomUUID } = require('node:crypto');
 const ChatMessage = require('../models/ChatMessage');
-const { generateAnswer } = require('../services/ollamaService');
+const { generateAnswer } = require('../services/geminiService');
 const { NOT_ENOUGH_INFORMATION, getDeterministicSafetyResponse } = require('./safety');
 const { buildRagMessages } = require('./promptBuilder');
 const { getRagConfig, retrieveRelevantChunks } = require('./retrieval');

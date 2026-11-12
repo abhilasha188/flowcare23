@@ -23,20 +23,20 @@
 - [ ] Confirm AI chat uses only reviewed knowledge chunks, returns real source URLs, and falls back when relevance is below threshold.
 - [ ] Verify deterministic handling for urgent symptoms, diagnosis requests, and medication/treatment requests.
 - [ ] Verify conversation history, feedback, and deletion are scoped to the signed-in user and health-data deletion also removes AI chat data.
-- [ ] Confirm the Atlas Vector Search index uses the dimension reported by the configured Ollama embedding model and is Ready.
-- [ ] Confirm Ollama is reachable only through a private, authenticated network in hosted deployments; localhost is for local development only.
+- [ ] Confirm the Atlas Vector Search index uses the configured Gemini embedding dimension, indexes `embeddingModel` as a filter, and is Ready.
+- [ ] Confirm all reviewed knowledge chunks are tagged with the configured Gemini embedding model before enabling assistant traffic.
 
 ## Before production deployment
 
 - [ ] Rotate the previously exposed MongoDB password and update the private hosting secret.
 - [ ] Import the repository root into Vercel so the root `vercel.json` builds the client and API services.
-- [ ] Configure Vercel API service secrets (`MONGO_URI`, `JWT_SECRET`, exact `CLIENT_URL`, and a reachable private `OLLAMA_BASE_URL`).
+- [ ] Configure Vercel API service secrets (`MONGO_URI`, `JWT_SECRET`, exact `CLIENT_URL`, and `GEMINI_API_KEY`).
 - [ ] Confirm the Vercel rewrites route `/api/*` to `flowcare-api` and other paths to `client`.
 - [ ] Require HTTPS and set `COOKIE_SECURE=true`; same-origin services can use `COOKIE_SAME_SITE=lax`.
 - [ ] Restrict MongoDB network access and enable backups/retention appropriate for health data.
 - [ ] Configure the Atlas `flowcare_vector_index` on `knowledgechunks` with the actual ingestion-reported vector dimension.
 - [ ] Run knowledge ingestion only for reviewed, authorized educational documents and verify the source metadata before launch.
-- [ ] Configure Ollama on the API host or a private network; never expose its unauthenticated API publicly.
+- [ ] Re-ingest the unchanged reviewed knowledge sources with Gemini embeddings and verify the assistant health endpoint reports Gemini chunks.
 - [ ] Test signup, login, refresh/session restoration, logout, and one authenticated write using a non-production account.
 - [ ] Confirm logs do not include passwords, tokens, database URIs, or personal health-record contents.
 - [ ] Publish a privacy notice and retention/support contact before collecting real user health data.

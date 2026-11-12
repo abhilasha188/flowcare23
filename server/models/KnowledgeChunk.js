@@ -11,6 +11,7 @@ const knowledgeChunkSchema = new mongoose.Schema(
     sourceUrl: { type: String, required: true, trim: true, maxlength: 2048 },
     category: { type: String, required: true, trim: true, maxlength: 80 },
     text: { type: String, required: true, maxlength: 12000 },
+    embeddingModel: { type: String, required: true, trim: true },
     embedding: { type: [Number], required: true, select: false },
   },
   { timestamps: true },

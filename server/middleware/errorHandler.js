@@ -1,7 +1,7 @@
 function errorHandler(error, _req, res, next) {
   if (res.headersSent) return next(error);
 
-  if (['VECTOR_INDEX_UNAVAILABLE', 'OLLAMA_UNAVAILABLE', 'OLLAMA_INVALID_RESPONSE', 'AI_CONFIGURATION_ERROR'].includes(error?.code)) {
+  if (['VECTOR_INDEX_UNAVAILABLE', 'GEMINI_UNAVAILABLE', 'GEMINI_INVALID_RESPONSE', 'AI_CONFIGURATION_ERROR'].includes(error?.code)) {
     return res.status(error.statusCode || 503).json({
       success: false,
       message: error.message,

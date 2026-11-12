@@ -2,7 +2,7 @@ const { createHash } = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const KnowledgeChunk = require('../models/KnowledgeChunk');
-const { createEmbedding, getOllamaConfig } = require('../services/ollamaService');
+const { createEmbedding, getEmbeddingModelId, getGeminiConfig } = require('../services/geminiService');
 const { chunkText } = require('./chunking');
 const { readDocument } = require('./documentProcessor');
 
@@ -22,9 +22,10 @@ async function ingestFile(filePath) {
   const documentId = path.basename(filePath);
   const { size, overlap } = getChunkingConfig();
   const chunks = chunkText(text, size, overlap);
-  const ollama = getOllamaConfig();
+  const gemini = getGeminiConfig();
+  const embeddingModel = getEmbeddingModelId(gemini);
   const contentHash = createHash('sha256')
-    .update(JSON.stringify({ metadata, size, overlap, embeddingModel: ollama.embeddingModel }))
+    .update(JSON.stringify({ metadata, size, overlap, embeddingModel }))
     .update('\0')
     .update(text)
     .digest('hex');
@@ -44,7 +45,7 @@ async function ingestFile(filePath) {
   let embeddingDimensions;
 
   for (let index = 0; index < chunks.length; index += 1) {
-    const embedding = await createEmbedding(chunks[index]);
+    const embedding = await createEmbedding(chunks[index], 'RETRIEVAL_DOCUMENT');
     embeddingDimensions ??= embedding.length;
     if (embedding.length !== embeddingDimensions) {
       throw new Error(`Embedding dimensions changed while processing ${path.basename(filePath)}.`);
@@ -60,6 +61,7 @@ async function ingestFile(filePath) {
           chunkIndex: index,
           text: chunks[index],
           embedding,
+          embeddingModel,
         },
       },
       { upsert: true, runValidators: true },
@@ -72,7 +74,7 @@ async function ingestFile(filePath) {
     skipped: false,
     chunks: chunks.length,
     embeddingDimensions,
-    embeddingModel: ollama.embeddingModel,
+    embeddingModel,
   };
 }
 
@@ -93,7 +95,7 @@ async function ingestKnowledgeDirectory(directory = DEFAULT_KNOWLEDGE_DIR, onPro
     const result = await ingestFile(path.join(directory, entry.name));
     totalChunks += result.chunks;
     if (result.embeddingDimensions && embeddingDimensions && result.embeddingDimensions !== embeddingDimensions) {
-      throw new Error('The embedding model returned inconsistent vector dimensions across documents. Verify OLLAMA_EMBED_MODEL.');
+      throw new Error('The embedding model returned inconsistent vector dimensions across documents. Verify GEMINI_EMBEDDING_MODEL and GEMINI_EMBEDDING_DIMENSIONS.');
     }
     embeddingDimensions ||= result.embeddingDimensions;
     onProgress(`${result.skipped ? 'Skipped unchanged' : 'Ingested'} ${entry.name}: ${result.chunks} chunks.`);

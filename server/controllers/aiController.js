@@ -2,28 +2,23 @@ const mongoose = require('mongoose');
 const ChatMessage = require('../models/ChatMessage');
 const KnowledgeChunk = require('../models/KnowledgeChunk');
 const { answerQuestion } = require('../rag/ragService');
-const { getOllamaConfig, getOllamaStatus } = require('../services/ollamaService');
+const { getEmbeddingModelId, getGeminiConfig, getGeminiStatus } = require('../services/geminiService');
 
-function getHealthMessage(database, ollama, knowledgeChunks) {
+function getHealthMessage(database, gemini, knowledgeChunks, geminiChunks) {
   if (!database) return 'MongoDB is unavailable to the API service.';
-  if (!ollama.available) {
-    if (ollama.endpointError === 'authentication') {
-      return 'Ollama rejected the request. Check the optional OLLAMA_API_KEY bearer token.';
-    }
-    if (ollama.endpointError === 'timeout') {
-      return 'Ollama did not respond before the health check timed out.';
-    }
-    if (ollama.endpointError === 'not_ollama') {
-      return 'OLLAMA_BASE_URL did not return an Ollama API response. Check the service URL.';
-    }
-    if (ollama.endpointError === 'http_error') {
-      return 'The configured Ollama endpoint returned an HTTP error.';
-    }
-    return 'The Ollama service is unreachable from the API. Check OLLAMA_BASE_URL and that its host is running.';
+  if (!gemini.configurationValid) {
+    if (gemini.endpointError === 'missing_api_key') return 'GEMINI_API_KEY is not configured on the API server.';
+    return 'Gemini configuration is invalid. Check the server-side model settings.';
   }
-  if (!ollama.chatModelAvailable) return 'The configured Ollama chat model is not installed on the service.';
-  if (!ollama.embeddingModelAvailable) return 'The configured Ollama embedding model is not installed on the service.';
+  if (gemini.endpointError === 'authentication') return 'Gemini rejected GEMINI_API_KEY. Check that the server-side key is valid and enabled.';
+  if (gemini.endpointError === 'timeout') return 'Gemini did not respond before the health check timed out.';
+  if (gemini.endpointError === 'rate_limited') return 'Gemini API quota or rate limits prevented the health check.';
+  if (gemini.endpointError === 'http_error') return 'The Gemini API returned an HTTP error during the health check.';
+  if (gemini.endpointError === 'unreachable') return 'The API server could not reach the Gemini API.';
+  if (!gemini.chatModelAvailable) return 'The configured Gemini chat model is unavailable to this API key.';
+  if (!gemini.embeddingModelAvailable) return 'The configured Gemini embedding model is unavailable to this API key.';
   if (!knowledgeChunks) return 'The reviewed knowledge base has not been ingested.';
+  if (!geminiChunks) return 'The reviewed knowledge sources must be re-ingested with the configured Gemini embedding model before the assistant can answer.';
   return undefined;
 }
 
@@ -160,41 +155,46 @@ async function feedback(req, res, next) {
 
 async function health(_req, res, next) {
   try {
-    const [ollama, knowledgeChunks] = await Promise.all([
-      getOllamaStatus(),
+    const [gemini, knowledgeChunks] = await Promise.all([
+      getGeminiStatus(),
       KnowledgeChunk.estimatedDocumentCount(),
     ]);
     const database = mongoose.connection.readyState === 1;
-    const ready = database
-      && ollama.available
-      && ollama.chatModelAvailable
-      && ollama.embeddingModelAvailable
-      && knowledgeChunks > 0;
-    const message = getHealthMessage(database, ollama, knowledgeChunks);
     let config;
     try {
-      config = getOllamaConfig();
+      config = getGeminiConfig();
     } catch (error) {
       return res.status(503).json({
         success: false,
         status: 'degraded',
         database: database ? 'available' : 'unavailable',
-        ollama: { ...ollama, configuration: 'invalid' },
-        knowledgeBase: { chunks: knowledgeChunks, vectorIndex: 'checked when searching' },
+        gemini: { ...gemini, configuration: 'invalid' },
+        knowledgeBase: { chunks: knowledgeChunks, geminiChunks: 0, vectorIndex: 'checked when searching' },
         message: error.message,
       });
     }
+    const geminiChunks = await KnowledgeChunk.countDocuments({
+      embeddingModel: getEmbeddingModelId(config),
+    });
+    const ready = database
+      && gemini.available
+      && gemini.chatModelAvailable
+      && gemini.embeddingModelAvailable
+      && knowledgeChunks > 0
+      && geminiChunks > 0;
+    const message = getHealthMessage(database, gemini, knowledgeChunks, geminiChunks);
 
     return res.status(ready ? 200 : 503).json({
       success: ready,
       status: ready ? 'healthy' : 'degraded',
       database: database ? 'available' : 'unavailable',
-      ollama: {
-        ...ollama,
+      gemini: {
+        ...gemini,
         chatModel: config.chatModel,
         embeddingModel: config.embeddingModel,
+        embeddingDimensions: config.embeddingDimensions,
       },
-      knowledgeBase: { chunks: knowledgeChunks, vectorIndex: 'checked when searching' },
+      knowledgeBase: { chunks: knowledgeChunks, geminiChunks, vectorIndex: 'checked when searching' },
       ...(!ready && message ? { message } : {}),
     });
   } catch (error) {
