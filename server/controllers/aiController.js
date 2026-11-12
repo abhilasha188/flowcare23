@@ -4,6 +4,29 @@ const KnowledgeChunk = require('../models/KnowledgeChunk');
 const { answerQuestion } = require('../rag/ragService');
 const { getOllamaConfig, getOllamaStatus } = require('../services/ollamaService');
 
+function getHealthMessage(database, ollama, knowledgeChunks) {
+  if (!database) return 'MongoDB is unavailable to the API service.';
+  if (!ollama.available) {
+    if (ollama.endpointError === 'authentication') {
+      return 'Ollama rejected the request. Check the optional OLLAMA_API_KEY bearer token.';
+    }
+    if (ollama.endpointError === 'timeout') {
+      return 'Ollama did not respond before the health check timed out.';
+    }
+    if (ollama.endpointError === 'not_ollama') {
+      return 'OLLAMA_BASE_URL did not return an Ollama API response. Check the service URL.';
+    }
+    if (ollama.endpointError === 'http_error') {
+      return 'The configured Ollama endpoint returned an HTTP error.';
+    }
+    return 'The Ollama service is unreachable from the API. Check OLLAMA_BASE_URL and that its host is running.';
+  }
+  if (!ollama.chatModelAvailable) return 'The configured Ollama chat model is not installed on the service.';
+  if (!ollama.embeddingModelAvailable) return 'The configured Ollama embedding model is not installed on the service.';
+  if (!knowledgeChunks) return 'The reviewed knowledge base has not been ingested.';
+  return undefined;
+}
+
 async function chat(req, res, next) {
   try {
     const result = await answerQuestion({
@@ -147,6 +170,7 @@ async function health(_req, res, next) {
       && ollama.chatModelAvailable
       && ollama.embeddingModelAvailable
       && knowledgeChunks > 0;
+    const message = getHealthMessage(database, ollama, knowledgeChunks);
     let config;
     try {
       config = getOllamaConfig();
@@ -171,10 +195,20 @@ async function health(_req, res, next) {
         embeddingModel: config.embeddingModel,
       },
       knowledgeBase: { chunks: knowledgeChunks, vectorIndex: 'checked when searching' },
+      ...(!ready && message ? { message } : {}),
     });
   } catch (error) {
     return next(error);
   }
 }
 
-module.exports = { chat, conversations, deleteConversation, feedback, health, history, renameConversation };
+module.exports = {
+  chat,
+  conversations,
+  deleteConversation,
+  feedback,
+  getHealthMessage,
+  health,
+  history,
+  renameConversation,
+};

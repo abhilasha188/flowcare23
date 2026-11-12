@@ -325,6 +325,9 @@ function AiAssistant() {
             <div className="ai-chat-identity"><span className="ai-empty-icon"><Bot size={19} /></span><div><strong>FlowCare AI</strong><small className={assistantReady ? 'ai-status-ready' : 'ai-status-unavailable'}><i />{assistantHealth === null ? 'Checking availability…' : assistantReady ? 'Available' : 'Currently unavailable'}</small></div></div>
             <div className="ai-chat-header-tools"><span className="ai-current-conversation">{selectedConversation?.title || 'New conversation'}</span><button className="button button-muted ai-mobile-history-toggle" type="button" onClick={() => setMobileHistoryOpen((open) => !open)}><MessageCircle size={15} /> Chats</button></div>
           </div>
+          {assistantHealth && !assistantReady && assistantHealth.message && (
+            <p className="ai-service-note" role="status">{assistantHealth.message}</p>
+          )}
           <div className="ai-message-list" aria-live="polite">
             {historyLoading
               ? <p className="ai-history-empty">Loading this conversation…</p>

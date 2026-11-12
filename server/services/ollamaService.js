@@ -38,6 +38,7 @@ function getOllamaConfig() {
 
   return {
     baseUrl: parsedUrl.toString().replace(/\/+$/, ''),
+    apiKey: process.env.OLLAMA_API_KEY?.trim() || '',
     chatModel: process.env.OLLAMA_CHAT_MODEL?.trim() || DEFAULTS.chatModel,
     embeddingModel: process.env.OLLAMA_EMBED_MODEL?.trim() || DEFAULTS.embeddingModel,
     contextSize: positiveInteger(process.env.OLLAMA_CONTEXT_SIZE, DEFAULTS.contextSize, 'OLLAMA_CONTEXT_SIZE'),
@@ -45,6 +46,21 @@ function getOllamaConfig() {
     maxOutputTokens: positiveInteger(process.env.AI_MAX_OUTPUT_TOKENS, DEFAULTS.maxOutputTokens, 'AI_MAX_OUTPUT_TOKENS'),
     temperature,
   };
+}
+
+function getRequestOptions(config, timeout) {
+  return {
+    timeout,
+    ...(config.apiKey ? { headers: { Authorization: `Bearer ${config.apiKey}` } } : {}),
+  };
+}
+
+function classifyOllamaError(error) {
+  if ([401, 403].includes(error?.response?.status)) return 'authentication';
+  if (error?.code === 'ECONNABORTED' || error?.code === 'ETIMEDOUT') return 'timeout';
+  if (error?.response?.status === 404) return 'not_ollama';
+  if (error?.response) return 'http_error';
+  return 'unreachable';
 }
 
 function ollamaError(operation) {
@@ -61,7 +77,7 @@ async function createEmbedding(text) {
     response = await axios.post(
       `${config.baseUrl}/api/embed`,
       { model: config.embeddingModel, input: text, keep_alive: config.keepAlive },
-      { timeout: 120000 },
+      getRequestOptions(config, 120000),
     );
   } catch {
     throw ollamaError('embedding');
@@ -94,7 +110,7 @@ async function generateAnswer(messages) {
           temperature: config.temperature,
         },
       },
-      { timeout: 180000 },
+      getRequestOptions(config, 180000),
     );
   } catch {
     throw ollamaError('chat');
@@ -114,7 +130,7 @@ async function getOllamaStatus() {
   let config;
   try {
     config = getOllamaConfig();
-    const response = await axios.get(`${config.baseUrl}/api/tags`, { timeout: 5000 });
+    const response = await axios.get(`${config.baseUrl}/api/tags`, getRequestOptions(config, 5000));
     const modelNames = (response.data?.models || []).map((model) => model.name);
     return {
       available: true,
@@ -122,14 +138,21 @@ async function getOllamaStatus() {
       embeddingModelAvailable: modelNames.some((name) => name === config.embeddingModel || name.startsWith(`${config.embeddingModel}:`)),
       configurationValid: true,
     };
-  } catch {
+  } catch (error) {
     return {
       available: false,
       chatModelAvailable: false,
       embeddingModelAvailable: false,
       configurationValid: Boolean(config),
+      endpointError: classifyOllamaError(error),
     };
   }
 }
 
-module.exports = { createEmbedding, generateAnswer, getOllamaConfig, getOllamaStatus };
+module.exports = {
+  classifyOllamaError,
+  createEmbedding,
+  generateAnswer,
+  getOllamaConfig,
+  getOllamaStatus,
+};

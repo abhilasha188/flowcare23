@@ -1,7 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const ChatMessage = require('../models/ChatMessage');
-const { deleteConversation, feedback, renameConversation } = require('./aiController');
+const {
+  deleteConversation,
+  feedback,
+  getHealthMessage,
+  renameConversation,
+} = require('./aiController');
 
 function responseStub() {
   return {
@@ -17,6 +22,21 @@ function responseStub() {
     },
   };
 }
+
+test('reports actionable assistant health without exposing endpoint details', () => {
+  assert.equal(
+    getHealthMessage(true, { available: false, endpointError: 'unreachable' }, 8),
+    'The Ollama service is unreachable from the API. Check OLLAMA_BASE_URL and that its host is running.',
+  );
+  assert.equal(
+    getHealthMessage(true, { available: false, endpointError: 'authentication' }, 8),
+    'Ollama rejected the request. Check the optional OLLAMA_API_KEY bearer token.',
+  );
+  assert.equal(
+    getHealthMessage(true, { available: true, chatModelAvailable: false }, 8),
+    'The configured Ollama chat model is not installed on the service.',
+  );
+});
 
 test('feedback updates only an assistant message owned by the signed-in user', async () => {
   const originalFindOneAndUpdate = ChatMessage.findOneAndUpdate;

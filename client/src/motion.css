@@ -817,6 +817,16 @@
   color: var(--flow-danger) !important;
 }
 
+.ai-service-note {
+  margin: 0;
+  padding: 10px 18px;
+  border-bottom: 1px solid #f1e4dc;
+  color: #825a32;
+  background: #fffaf3;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .ai-current-conversation {
   overflow: hidden;
   max-width: 210px;
