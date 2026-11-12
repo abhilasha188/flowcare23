@@ -17,7 +17,7 @@ function DashboardLayout() {
   const [logoutError, setLogoutError] = useState('');
   const navigate = useNavigate();
 
-  useReminderNotifications(user);
+  const reminderNotifications = useReminderNotifications(user);
 
   const closeNavigation = useCallback(() => setNavigationOpen(false), []);
 
@@ -53,6 +53,10 @@ function DashboardLayout() {
       <div className="dashboard-main">
         <DashboardHeader
           user={user}
+          notifications={reminderNotifications.notifications}
+          unreadNotificationCount={reminderNotifications.unreadCount}
+          notificationSyncError={reminderNotifications.syncError}
+          onReadNotifications={reminderNotifications.markAllRead}
           onMenuClick={() => setNavigationOpen(true)}
           onToggleCollapse={() => setNavigationCollapsed((value) => !value)}
           collapsed={navigationCollapsed}

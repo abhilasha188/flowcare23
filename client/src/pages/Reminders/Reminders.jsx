@@ -9,8 +9,6 @@ import {
   patchReminder,
   updateReminder,
 } from '../../services/reminderService';
-import { useAuth } from '../../hooks/useAuth';
-import useReminderNotifications from '../../hooks/useReminderNotifications';
 import SectionTabs from '../../components/common/SectionTabs';
 import useSectionTab from '../../hooks/useSectionTab';
 
@@ -38,7 +36,6 @@ function localDateTimeValue(value) {
 
 function Reminders() {
   const [activeTab, setActiveTab] = useSectionTab('view', 'all', reminderTabs);
-  const { user } = useAuth();
   const [refresh, setRefresh] = useState(0);
   const [listResult, setListResult] = useState({ key: null, reminders: [], error: '' });
   const [form, setForm] = useState(blankForm);
@@ -61,8 +58,6 @@ function Reminders() {
     if (activeTab === 'upcoming') return !isPast;
     return true;
   });
-
-  useReminderNotifications(user, reminders);
 
   useEffect(() => {
     let active = true;
@@ -107,6 +102,7 @@ function Reminders() {
       const payload = { ...form, scheduledAt: new Date(form.scheduledAt).toISOString() };
       if (editingId) await updateReminder(editingId, payload);
       else await createReminder(payload);
+      window.dispatchEvent(new Event('flowcare:reminders-changed'));
       setNotice(editingId ? 'Reminder updated.' : 'Reminder saved.');
       resetForm();
       setRefresh((value) => value + 1);
@@ -121,6 +117,7 @@ function Reminders() {
     setError('');
     try {
       await patchReminder(reminder._id, { enabled: !reminder.enabled });
+      window.dispatchEvent(new Event('flowcare:reminders-changed'));
       setNotice(reminder.enabled ? 'Reminder paused.' : 'Reminder enabled.');
       setRefresh((value) => value + 1);
     } catch (requestError) {
@@ -134,6 +131,7 @@ function Reminders() {
     setError('');
     try {
       await deleteReminder(deleteTarget._id);
+      window.dispatchEvent(new Event('flowcare:reminders-changed'));
       setDeleteTarget(null);
       setNotice('Reminder deleted.');
       setRefresh((value) => value + 1);
@@ -186,7 +184,7 @@ function Reminders() {
         <section className="feature-card">
           <div className="feature-card-heading"><div><span className="section-eyebrow">YOUR SCHEDULE</span><h3>Reminder history</h3></div><span className="entry-count">{visibleReminders.length}</span></div>
           <SectionTabs label="Reminder status" tabs={reminderTabs} activeTab={activeTab} onChange={setActiveTab} />
-          <p className="feature-note">Browser alerts only appear while FlowCare is open and permission is granted. In-app status remains available here.</p>
+          <p className="feature-note">Enable reminder notifications in Settings, and turn on the matching period or symptom category when needed. Browser alerts also need permission and appear only while FlowCare is open.</p>
           {loading && <div className="feature-loading" role="status">Loading reminders…</div>}
           {!loading && visibleReminders.length === 0 && <div className="feature-empty"><CalendarClock size={23} /><h4>{reminders.length ? 'No reminders in this view' : 'No reminders yet'}</h4><p>{reminders.length ? 'Choose another reminder status to see more.' : 'Add a period estimate, symptom check-in, or custom reminder.'}</p></div>}
           {!loading && visibleReminders.length > 0 && (
