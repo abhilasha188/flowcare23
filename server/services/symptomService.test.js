@@ -35,6 +35,15 @@ test('allows entries with only one optional health field', () => {
   }).energyLevel, 5);
 });
 
+test('accepts the client local date when UTC is still on the previous day', () => {
+  const entry = normalizeSymptomInput({
+    date: '2026-11-13',
+    symptoms: [{ name: 'Cramps', severity: 5 }],
+  }, '2026-11-13');
+
+  assert.equal(entry.date.toISOString(), '2026-11-13T00:00:00.000Z');
+});
+
 test('rejects invalid dates, future dates, duplicate symptoms, and invalid scores', () => {
   for (const input of [
     { date: '2025-02-30', symptoms: [{ name: 'Cramps', severity: 4 }] },

@@ -6,7 +6,7 @@ const {
   getPatternAnalytics,
   getSymptomAnalytics,
 } = require('../services/analyticsService');
-const { calculateCycleOverview } = require('../services/predictionService');
+const { calculateCycleOverview, dateOnlyToUtc } = require('../services/predictionService');
 
 function handleError(error, res, next) {
   if (error.statusCode) {
@@ -17,7 +17,7 @@ function handleError(error, res, next) {
 
 async function overview(req, res, next) {
   try {
-    return res.status(200).json({ success: true, overview: await getOverview(req.user) });
+    return res.status(200).json({ success: true, overview: await getOverview(req.user, req.todayDate) });
   } catch (error) {
     return handleError(error, res, next);
   }
@@ -29,7 +29,7 @@ async function getPredictions(req, res, next) {
     cycles.reverse();
     return res.status(200).json({
       success: true,
-      predictions: calculateCycleOverview(cycles, req.user),
+      predictions: calculateCycleOverview(cycles, req.user, req.todayDate),
     });
   } catch (error) {
     return next(error);
@@ -40,7 +40,7 @@ async function cycles(req, res, next) {
   try {
     return res.status(200).json({
       success: true,
-      analytics: await getCycleAnalytics(req.user, req.query.range),
+      analytics: await getCycleAnalytics(req.user, req.query.range, dateOnlyToUtc(req.todayDate)),
     });
   } catch (error) {
     return handleError(error, res, next);
@@ -51,7 +51,7 @@ async function symptoms(req, res, next) {
   try {
     return res.status(200).json({
       success: true,
-      analytics: await getSymptomAnalytics(req.user, req.query.range),
+      analytics: await getSymptomAnalytics(req.user, req.query.range, dateOnlyToUtc(req.todayDate)),
     });
   } catch (error) {
     return handleError(error, res, next);
@@ -62,7 +62,7 @@ async function moods(req, res, next) {
   try {
     return res.status(200).json({
       success: true,
-      analytics: await getMoodAnalytics(req.user, req.query.range),
+      analytics: await getMoodAnalytics(req.user, req.query.range, dateOnlyToUtc(req.todayDate)),
     });
   } catch (error) {
     return handleError(error, res, next);
@@ -73,7 +73,7 @@ async function patterns(req, res, next) {
   try {
     return res.status(200).json({
       success: true,
-      analytics: await getPatternAnalytics(req.user, req.query.range),
+      analytics: await getPatternAnalytics(req.user, req.query.range, dateOnlyToUtc(req.todayDate)),
     });
   } catch (error) {
     return handleError(error, res, next);

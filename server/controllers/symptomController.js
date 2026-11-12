@@ -17,7 +17,7 @@ function handleError(error, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { entry, created } = await saveDailyEntry(req.user, req.body);
+    const { entry, created } = await saveDailyEntry(req.user, req.body, req.todayDate);
     return res.status(created ? 201 : 200).json({
       success: true,
       message: created ? 'Daily health entry saved.' : 'Daily health entry updated.',
@@ -48,7 +48,7 @@ async function get(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    const entry = await updateEntry(req.user, req.params.id, req.body);
+    const entry = await updateEntry(req.user, req.params.id, req.body, req.todayDate);
     return res.status(200).json({ success: true, message: 'Daily health entry updated.', entry: serializeSymptom(entry) });
   } catch (error) {
     return handleError(error, res, next);

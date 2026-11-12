@@ -39,7 +39,7 @@ async function getCycle(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const record = await createCycle(req.user, req.body);
+    const record = await createCycle(req.user, req.body, req.todayDate);
     return res.status(201).json({
       success: true,
       message: 'Period saved.',
@@ -53,7 +53,7 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    const record = await updateCycle(req.user, req.params.id, req.body);
+    const record = await updateCycle(req.user, req.params.id, req.body, req.todayDate);
     return res.status(200).json({
       success: true,
       message: 'Period updated.',

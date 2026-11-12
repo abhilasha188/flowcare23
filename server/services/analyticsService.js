@@ -85,7 +85,7 @@ async function getSymptomSummary(userId, range = { from: null, to: null }) {
   };
 }
 
-async function getOverview(user) {
+async function getOverview(user, today = new Date()) {
   const userId = getUserId(user);
   const [cycleCount, cycles, symptomSummary, recentSymptoms, upcomingReminders] = await Promise.all([
     Cycle.countDocuments({ userId }),
@@ -98,7 +98,7 @@ async function getOverview(user) {
       .lean(),
   ]);
   cycles.reverse();
-  const overview = calculateCycleOverview(cycles, user);
+  const overview = calculateCycleOverview(cycles, user, today);
   return {
     ...overview,
     totalCyclesRecorded: cycleCount,
@@ -112,8 +112,8 @@ async function getOverview(user) {
   };
 }
 
-async function getCycleAnalytics(user, rangeInput = '90d') {
-  const range = resolveDateRange(rangeInput);
+async function getCycleAnalytics(user, rangeInput = '90d', now = new Date()) {
+  const range = resolveDateRange(rangeInput, now);
   const query = { userId: getUserId(user) };
   if (range.from) {
     const historyFrom = new Date(range.from);
@@ -154,8 +154,8 @@ async function getCycleAnalytics(user, rangeInput = '90d') {
   };
 }
 
-async function getSymptomAnalytics(user, rangeInput = '90d') {
-  const range = resolveDateRange(rangeInput);
+async function getSymptomAnalytics(user, rangeInput = '90d', now = new Date()) {
+  const range = resolveDateRange(rangeInput, now);
   const [result = {}] = await Symptom.aggregate([
     { $match: { userId: getUserId(user), ...dateMatch('date', range) } },
     {
@@ -233,8 +233,8 @@ async function getSymptomAnalytics(user, rangeInput = '90d') {
   };
 }
 
-async function getMoodAnalytics(user, rangeInput = '90d') {
-  const range = resolveDateRange(rangeInput);
+async function getMoodAnalytics(user, rangeInput = '90d', now = new Date()) {
+  const range = resolveDateRange(rangeInput, now);
   const [result = {}] = await Symptom.aggregate([
     { $match: { userId: getUserId(user), mood: { $type: 'string', $ne: '' }, ...dateMatch('date', range) } },
     {
@@ -269,11 +269,11 @@ async function getMoodAnalytics(user, rangeInput = '90d') {
   };
 }
 
-async function getPatternAnalytics(user, rangeInput = '12m') {
-  const range = resolveDateRange(rangeInput);
+async function getPatternAnalytics(user, rangeInput = '12m', now = new Date()) {
+  const range = resolveDateRange(rangeInput, now);
   const userId = getUserId(user);
   const [cycles, entries] = await Promise.all([
-    Cycle.find({ userId, startDate: { $lte: range.to || new Date() } })
+    Cycle.find({ userId, startDate: { $lte: range.to || now } })
       .sort({ startDate: -1 })
       .limit(120)
       .lean(),

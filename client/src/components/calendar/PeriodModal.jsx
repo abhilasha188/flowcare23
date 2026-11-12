@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { localDateToDateOnly } from '../../utils/dateUtils';
 
-const today = new Date().toISOString().slice(0, 10);
+const today = localDateToDateOnly(new Date());
 const earliestDate = localDateToDateOnly(new Date(new Date().getFullYear() - 120, new Date().getMonth(), new Date().getDate()));
 
 function validate(values) {

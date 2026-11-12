@@ -14,6 +14,8 @@ let csrfToken;
 let csrfRequest;
 
 api.interceptors.request.use((config) => {
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (timeZone) config.headers.set('X-Client-Timezone', timeZone);
   if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
     config.headers.set('X-CSRF-Token', csrfToken);
   }

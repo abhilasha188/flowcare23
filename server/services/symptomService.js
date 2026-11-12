@@ -26,14 +26,16 @@ function optionalScore(value, label) {
   return value;
 }
 
-function normalizeSymptomInput(input) {
+function normalizeSymptomInput(input, today = new Date()) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw new SymptomError('Enter a valid daily health entry.', 400);
   }
 
   const date = typeof input.date === 'string' ? dateOnlyToUtc(input.date) : null;
   if (!date) throw new SymptomError('Enter a valid date as YYYY-MM-DD.', 400);
-  if (date > dateOnlyToUtc(new Date())) throw new SymptomError('The entry date cannot be in the future.', 400);
+  const todayDate = dateOnlyToUtc(today);
+  if (!todayDate) throw new SymptomError('Unable to determine today’s date.', 500);
+  if (date > todayDate) throw new SymptomError('The entry date cannot be in the future.', 400);
 
   if (input.symptoms != null && !Array.isArray(input.symptoms)) {
     throw new SymptomError('Symptoms must be a list.', 400);
@@ -130,9 +132,9 @@ function parseListFilters(filters = {}) {
   return { query, page, limit };
 }
 
-async function saveDailyEntry(user, input) {
+async function saveDailyEntry(user, input, today = new Date()) {
   const userId = getUserId(user);
-  const normalized = normalizeSymptomInput(input);
+  const normalized = normalizeSymptomInput(input, today);
   let entry = await Symptom.findOne({ userId, date: normalized.date });
   if (entry) {
     Object.assign(entry, normalized);
@@ -173,9 +175,9 @@ async function findOwnedEntry(user, entryId) {
   return entry;
 }
 
-async function updateEntry(user, entryId, input) {
+async function updateEntry(user, entryId, input, today = new Date()) {
   const entry = await findOwnedEntry(user, entryId);
-  const normalized = normalizeSymptomInput(input);
+  const normalized = normalizeSymptomInput(input, today);
   const duplicate = await Symptom.exists({
     userId: getUserId(user),
     date: normalized.date,

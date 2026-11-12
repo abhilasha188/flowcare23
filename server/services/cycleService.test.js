@@ -3,9 +3,9 @@ const test = require('node:test');
 const Cycle = require('../models/Cycle');
 const { CycleError, findOwnedCycle, parsePeriodInput } = require('./cycleService');
 
-function assertCycleError(input, expectedStatus = 400) {
+function assertCycleError(input, expectedStatus = 400, today = new Date()) {
   assert.throws(
-    () => parsePeriodInput(input),
+    () => parsePeriodInput(input, today),
     (error) => error instanceof CycleError && error.statusCode === expectedStatus,
   );
 }
@@ -21,6 +21,16 @@ test('accepts a period without an end date as ongoing', () => {
   const parsed = parsePeriodInput({ startDate: today, endDate: '' });
   assert.equal(parsed.startDate.toISOString().slice(0, 10), today);
   assert.equal(parsed.endDate, null);
+});
+
+test('accepts a period dated today in the client timezone when UTC has not rolled over', () => {
+  const parsed = parsePeriodInput({
+    startDate: '2026-11-13',
+    endDate: '2026-11-13',
+  }, '2026-11-13');
+
+  assert.equal(parsed.startDate.toISOString(), '2026-11-13T00:00:00.000Z');
+  assertCycleError({ startDate: '2026-11-14' }, 400, '2026-11-13');
 });
 
 test('rejects invalid dates, reversed ranges, future dates, and excessively long periods', () => {

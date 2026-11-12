@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/authRoutes');
+const setClientDate = require('./middleware/clientDate');
 const cycleRoutes = require('./routes/cycleRoutes');
 const predictionRoutes = require('./routes/predictionRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
@@ -28,6 +29,7 @@ app.use(
 );
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
+app.use(setClientDate);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/cycles', cycleRoutes);

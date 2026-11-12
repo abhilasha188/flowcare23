@@ -10,19 +10,20 @@ class CycleError extends Error {
   }
 }
 
-function parsePeriodInput(input) {
+function parsePeriodInput(input, today = new Date()) {
   const startDate = dateOnlyToUtc(input.startDate);
   const endDate = input.endDate ? dateOnlyToUtc(input.endDate) : null;
   if (!startDate) throw new CycleError('Enter a valid period start date.', 400);
   if (input.endDate && !endDate) throw new CycleError('Enter a valid period end date.', 400);
 
-  const today = dateOnlyToUtc(new Date());
-  const earliest = new Date(Date.UTC(today.getUTCFullYear() - 120, today.getUTCMonth(), today.getUTCDate()));
+  const todayDate = dateOnlyToUtc(today);
+  if (!todayDate) throw new CycleError('Unable to determine today’s date.', 500);
+  const earliest = new Date(Date.UTC(todayDate.getUTCFullYear() - 120, todayDate.getUTCMonth(), todayDate.getUTCDate()));
   if (startDate < earliest) {
     throw new CycleError('Period dates must be within the last 120 years.', 400);
   }
-  if (startDate > today) throw new CycleError('Period start date cannot be in the future.', 400);
-  if (endDate && endDate > today) throw new CycleError('Period end date cannot be in the future.', 400);
+  if (startDate > todayDate) throw new CycleError('Period start date cannot be in the future.', 400);
+  if (endDate && endDate > todayDate) throw new CycleError('Period end date cannot be in the future.', 400);
   if (endDate && endDate < startDate) throw new CycleError('Period end date cannot be before its start date.', 400);
   if (endDate && (endDate.getTime() - startDate.getTime()) / 86400000 + 1 > 15) {
     throw new CycleError('A period record cannot be longer than 15 days.', 400);
@@ -47,15 +48,16 @@ function getUserId(user) {
   return user._id || user.id;
 }
 
-async function assertNoOverlap(userId, startDate, endDate, excludedId = null) {
+async function assertNoOverlap(userId, startDate, endDate, excludedId = null, today = new Date()) {
   const query = { userId };
   if (excludedId) query._id = { $ne: excludedId };
   const records = await Cycle.find(query).select('startDate endDate').lean();
-  const today = dateOnlyToUtc(new Date());
+  const todayDate = dateOnlyToUtc(today);
+  if (!todayDate) throw new CycleError('Unable to determine today’s date.', 500);
 
   const overlap = records.some((record) => {
-    const existingEndDate = record.endDate || today;
-    const newEndDate = endDate || today;
+    const existingEndDate = record.endDate || todayDate;
+    const newEndDate = endDate || todayDate;
     return startDate <= existingEndDate && newEndDate >= record.startDate;
   });
 
@@ -80,15 +82,15 @@ async function findOwnedCycle(user, cycleId) {
   return record;
 }
 
-async function createCycle(user, input) {
-  const { startDate, endDate } = parsePeriodInput(input);
+async function createCycle(user, input, today = new Date()) {
+  const { startDate, endDate } = parsePeriodInput(input, today);
   const optionalFields = normalizeOptionalFields(input);
   const userId = getUserId(user);
 
   if (await Cycle.exists({ userId, startDate })) {
     throw new CycleError('A period already begins on this date.', 409);
   }
-  await assertNoOverlap(userId, startDate, endDate);
+  await assertNoOverlap(userId, startDate, endDate, null, today);
 
   try {
     return await Cycle.create({ userId, startDate, endDate, ...optionalFields });
@@ -100,9 +102,9 @@ async function createCycle(user, input) {
   }
 }
 
-async function updateCycle(user, cycleId, input) {
+async function updateCycle(user, cycleId, input, today = new Date()) {
   const record = await findOwnedCycle(user, cycleId);
-  const { startDate, endDate } = parsePeriodInput(input);
+  const { startDate, endDate } = parsePeriodInput(input, today);
   const optionalFields = normalizeOptionalFields(input);
   const userId = getUserId(user);
 
@@ -112,7 +114,7 @@ async function updateCycle(user, cycleId, input) {
     _id: { $ne: record._id },
   });
   if (duplicate) throw new CycleError('A period already begins on this date.', 409);
-  await assertNoOverlap(userId, startDate, endDate, record._id);
+  await assertNoOverlap(userId, startDate, endDate, record._id, today);
 
   record.startDate = startDate;
   record.endDate = endDate;
