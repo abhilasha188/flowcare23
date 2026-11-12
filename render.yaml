@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: flowcare-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: CLIENT_URL
+        sync: false
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: COOKIE_SAME_SITE
+        value: none
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: JWT_REMEMBER_EXPIRES_IN
+        value: 30d
