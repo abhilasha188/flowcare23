@@ -196,7 +196,7 @@ The repository root `vercel.json` configures two Vercel services: the Vite clien
 1. Import the repository into Vercel with the repository root as the project root so Vercel reads `vercel.json`.
 2. Set server-side environment variables for the API service: `MONGO_URI`, `JWT_SECRET`, `CLIENT_URL` (the exact shared Vercel origin), `NODE_ENV=production`, `COOKIE_SAME_SITE=lax`, and `COOKIE_SECURE=true`. Use a least-privilege MongoDB user and rotate any previously exposed password.
 3. Set `OLLAMA_BASE_URL` to an Ollama service reachable by the Vercel API function. The local default `http://localhost:11434` will not reach Ollama from Vercel; keep the model endpoint private and authenticated.
-4. The client uses the same-origin `/api` path by default. If setting `VITE_API_URL` in Vercel, use `/api`; do not put server secrets in `VITE_*` variables.
+4. Production client builds always use the same-origin `/api` path; `VITE_API_URL` is only honored during local development. Remove any old `VITE_API_URL` override from Vercel; do not put server secrets in `VITE_*` variables.
 5. Confirm `/api/health`, registration, login, logout, CSRF-protected mutations, and database connectivity using test accounts before launch. The Vercel API entrypoint connects to MongoDB at runtime; it does not read the local `.env` file.
 6. Restrict database and model-service network access to the API where practical. Never commit `.env` files or expose server secrets through Vite variables.
 
