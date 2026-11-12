@@ -155,6 +155,48 @@ test('rejects requests from an untrusted browser origin', async () => {
   assert.equal(response.status, 403);
 });
 
+test('allows same-origin requests when the configured client origin is stale', async () => {
+  const csrf = await getCsrf();
+  const originalClientUrl = process.env.CLIENT_URL;
+  process.env.CLIENT_URL = 'https://configured.example/';
+
+  try {
+    const response = await fetch(`${baseUrl}/api/auth/logout`, {
+      method: 'POST',
+      headers: {
+        Origin: baseUrl,
+        Cookie: csrf.cookie,
+        'X-CSRF-Token': csrf.token,
+      },
+    });
+
+    assert.equal(response.status, 200);
+  } finally {
+    process.env.CLIENT_URL = originalClientUrl;
+  }
+});
+
+test('normalizes configured origins with trailing slashes for CSRF checks', async () => {
+  const csrf = await getCsrf();
+  const originalClientUrl = process.env.CLIENT_URL;
+  process.env.CLIENT_URL = 'https://client.example/';
+
+  try {
+    const response = await fetch(`${baseUrl}/api/auth/logout`, {
+      method: 'POST',
+      headers: {
+        Origin: 'https://client.example',
+        Cookie: csrf.cookie,
+        'X-CSRF-Token': csrf.token,
+      },
+    });
+
+    assert.equal(response.status, 200);
+  } finally {
+    process.env.CLIENT_URL = originalClientUrl;
+  }
+});
+
 test('rate limits repeated login attempts', async () => {
   const csrf = await getCsrf();
   for (let attempt = 1; attempt <= 6; attempt += 1) {

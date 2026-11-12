@@ -1,12 +1,6 @@
 const crypto = require('crypto');
 const { CSRF_COOKIE_NAME, setCsrfCookie } = require('../utils/auth');
-
-function getAllowedOrigins() {
-  return (process.env.CLIENT_URL || 'http://localhost:5173')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-}
+const { getClientOrigins, getRequestOrigin, normalizeOrigin } = require('../utils/origins');
 
 function issueCsrfToken(_req, res) {
   const csrfToken = crypto.randomBytes(32).toString('hex');
@@ -16,7 +10,12 @@ function issueCsrfToken(_req, res) {
 
 function csrfProtection(req, res, next) {
   const origin = req.get('Origin');
-  if (origin && !getAllowedOrigins().includes(origin)) {
+  const normalizedOrigin = origin ? normalizeOrigin(origin) : null;
+  if (
+    origin
+    && (!normalizedOrigin
+      || (normalizedOrigin !== getRequestOrigin(req) && !getClientOrigins().includes(normalizedOrigin)))
+  ) {
     return res.status(403).json({
       success: false,
       message: 'Request origin is not allowed.',
