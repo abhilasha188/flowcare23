@@ -11,7 +11,6 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
-  Settings,
 } from 'lucide-react';
 import { Link, NavLink } from 'react-router-dom';
 import { getInitials } from '../../utils/dateUtils';
@@ -28,7 +27,7 @@ const navigationSections = [
     { to: '/reminders', label: 'Reminders', icon: Bell },
     { to: '/resources', label: 'Resources', icon: BookOpen },
   ] },
-  { label: 'PREFERENCES', links: [{ to: '/settings', label: 'Settings', icon: Settings }] },
+  { label: 'ACCOUNT', links: [{ to: '/settings', label: 'Profile & settings', icon: CircleUserRound }] },
 ];
 
 function Sidebar({ open, onClose, collapsed, onToggleCollapse, user, onLogout, logoutBusy, logoutError }) {

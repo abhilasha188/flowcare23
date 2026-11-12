@@ -1,10 +1,10 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertCircle,
+  ArrowUpRight,
   Bot,
   Check,
   Clipboard,
-  HeartPulse,
   LoaderCircle,
   MessageCircle,
   PencilLine,
@@ -16,6 +16,7 @@ import {
   ThumbsUp,
   Trash2,
   UserRound,
+  X,
 } from 'lucide-react';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { getApiErrorMessage } from '../../services/api';
@@ -30,12 +31,10 @@ import {
 } from '../../services/aiService';
 
 const suggestedQuestions = [
-  { title: 'Understand my cycle', text: 'What does a cycle estimate mean?', icon: HeartPulse },
-  { title: 'Track a period', text: 'What information should I track in a period diary?', icon: MessageCircle },
-  { title: 'Period symptoms', text: 'Where can I find reliable information about period pain?', icon: ShieldCheck },
-  { title: 'PMS & wellbeing', text: 'What general information is available about premenstrual symptoms?', icon: HeartPulse },
-  { title: 'Nutrition & wellness', text: 'What general nutrition information does the NHS provide?', icon: ShieldCheck },
-  { title: 'Cycle changes', text: 'Where can I find reliable information about changes in periods?', icon: Search },
+  'Why can my cycle length vary?',
+  'What should I track in a period diary?',
+  'What general information is available about period pain?',
+  'Where can I learn about PMS?',
 ];
 
 function renderInlineMarkdown(text) {
@@ -85,7 +84,7 @@ function AiAssistant() {
   const [copiedMessageId, setCopiedMessageId] = useState('');
   const [assistantHealth, setAssistantHealth] = useState(null);
   const [retryQuestion, setRetryQuestion] = useState('');
-  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [error, setError] = useState('');
   const [historyError, setHistoryError] = useState('');
   const bottomRef = useRef(null);
@@ -183,7 +182,7 @@ function AiAssistant() {
     setInput('');
     setError('');
     setHistoryError('');
-    setMobileHistoryOpen(false);
+    setHistoryOpen(false);
     setRetryQuestion('');
   }
 
@@ -257,24 +256,36 @@ function AiAssistant() {
     <div className="feature-page ai-page">
       <header className="feature-heading ai-heading">
         <div>
-          <span className="section-eyebrow">REVIEWED HEALTH INFORMATION</span>
-          <h2>AI menstrual health assistant</h2>
-          <p>Ask general questions and explore educational sources. This assistant cannot diagnose or provide treatment.</p>
+          <span className="section-eyebrow">A GENTLE SPACE TO ASK</span>
+          <h2>Ask FlowCare</h2>
+          <p>Thoughtful, reviewed information for your wellbeing.</p>
         </div>
-        <span className="feature-heading-icon"><Bot size={21} /></span>
       </header>
 
       <div className="ai-privacy-note" role="note">
         <ShieldCheck size={18} />
-        <span>Your cycle and symptom records are not attached. Your question, recent chat context, and retrieved educational excerpts are sent to Google Gemini to generate a reply.</span>
+        <span>Cycle and symptom records aren’t attached. Questions and relevant excerpts go to Google Gemini.</span>
       </div>
 
-      <div className="ai-workspace">
-        <aside className={`ai-conversation-panel${mobileHistoryOpen ? ' is-mobile-open' : ''}`} aria-label="Conversation history">
+      <div className={`ai-workspace${historyOpen ? ' is-history-open' : ''}`}>
+        {historyOpen && (
+          <button
+            className="ai-history-scrim"
+            type="button"
+            aria-label="Close conversation history"
+            onClick={() => setHistoryOpen(false)}
+          />
+        )}
+        <aside
+          id="ai-history-panel"
+          className={`ai-conversation-panel${historyOpen ? ' is-open' : ''}`}
+          aria-label="Conversation history"
+          hidden={!historyOpen}
+        >
           <div className="ai-history-heading">
-            <div><span className="section-eyebrow">YOUR CHATS</span><h3>History</h3></div>
-            <button className="button button-outline ai-new-chat" type="button" onClick={startConversation}>
-              <Plus size={16} /><span>New</span>
+            <h3>Conversations</h3>
+            <button className="icon-button subtle-icon-button" type="button" aria-label="Close conversation history" onClick={() => setHistoryOpen(false)}>
+              <X size={17} />
             </button>
           </div>
           <label className="ai-search">
@@ -293,7 +304,7 @@ function AiAssistant() {
                       <button
                         type="button"
                         className={`ai-conversation${conversationId === item.conversationId ? ' is-selected' : ''}`}
-                        onClick={() => { setConversationId(item.conversationId); setMobileHistoryOpen(false); }}
+                        onClick={() => { setConversationId(item.conversationId); setHistoryOpen(false); }}
                         title={item.title}
                       >
                         <MessageCircle size={16} />
@@ -322,8 +333,30 @@ function AiAssistant() {
 
         <section className="ai-chat-panel" aria-label="Chat with FlowCare">
           <div className="ai-chat-header">
-            <div className="ai-chat-identity"><span className="ai-empty-icon"><Bot size={19} /></span><div><strong>FlowCare AI</strong><small className={assistantReady ? 'ai-status-ready' : 'ai-status-unavailable'}><i />{assistantHealth === null ? 'Checking availability…' : assistantReady ? 'Available' : 'Currently unavailable'}</small></div></div>
-            <div className="ai-chat-header-tools"><span className="ai-current-conversation">{selectedConversation?.title || 'New conversation'}</span><button className="button button-muted ai-mobile-history-toggle" type="button" onClick={() => setMobileHistoryOpen((open) => !open)}><MessageCircle size={15} /> Chats</button></div>
+            <div className="ai-chat-identity">
+              <span className="ai-chat-avatar"><Bot size={18} /></span>
+              <div>
+                <strong>FlowCare</strong>
+                <small className={assistantReady ? 'ai-status-ready' : 'ai-status-unavailable'}>
+                  <i />{assistantHealth === null ? 'Checking…' : assistantReady ? 'Ready to help' : 'Temporarily unavailable'}
+                </small>
+              </div>
+            </div>
+            <div className="ai-chat-header-tools">
+              <span className="ai-current-conversation">{selectedConversation?.title || 'New chat'}</span>
+              <button
+                className="ai-header-button"
+                type="button"
+                aria-controls="ai-history-panel"
+                aria-expanded={historyOpen}
+                onClick={() => setHistoryOpen((open) => !open)}
+              >
+                <MessageCircle size={16} /><span>Chats</span>
+              </button>
+              <button className="ai-header-button ai-header-new" type="button" onClick={startConversation}>
+                <Plus size={16} /><span>New</span>
+              </button>
+            </div>
           </div>
           {assistantHealth && !assistantReady && assistantHealth.message && (
             <p className="ai-service-note" role="status">{assistantHealth.message}</p>
@@ -334,17 +367,15 @@ function AiAssistant() {
               : messages.length === 0
                 ? (
                   <div className="ai-empty-state">
-                    <span className="ai-empty-icon"><Bot size={25} /></span>
-                    <h3>Your menstrual health companion</h3>
-                    <p>Ask general questions, understand your cycle, and explore reliable health information.</p>
+                    <span className="ai-empty-icon"><Bot size={23} /></span>
+                    <h3>What would you like to know?</h3>
                     <div className="ai-suggestions">
-                      {suggestedQuestions.map(({ title, text, icon: Icon }) => (
-                        <button key={title} type="button" onClick={() => submitQuestion(null, text)} disabled={chatBusy}>
-                          <Icon size={17} /><span><strong>{title}</strong><small>{text}</small></span>
+                      {suggestedQuestions.map((question) => (
+                        <button key={question} type="button" onClick={() => submitQuestion(null, question)} disabled={chatBusy}>
+                          <span>{question}</span><ArrowUpRight size={16} aria-hidden="true" />
                         </button>
                       ))}
                     </div>
-                    <small className="ai-welcome-disclaimer">Educational information only; not a substitute for professional medical advice.</small>
                   </div>
                 )
                 : messages.map((message) => (
@@ -363,7 +394,7 @@ function AiAssistant() {
                       {message.role === 'assistant' && (
                         <div className="ai-message-toolbar">
                         <div className="ai-feedback" aria-label="Rate this answer">
-                          <span>Was this helpful?</span>
+                          <span className="sr-only">Was this helpful?</span>
                           <button
                             type="button"
                             aria-label="Helpful"
@@ -381,7 +412,7 @@ function AiAssistant() {
                         </div>
                         <button className="ai-copy-button" type="button" onClick={() => copyMessage(message)} aria-label="Copy response">
                           {copiedMessageId === message.id ? <Check size={14} /> : <Clipboard size={14} />}
-                          {copiedMessageId === message.id ? 'Copied' : 'Copy'}
+                          <span className="sr-only">{copiedMessageId === message.id ? 'Copied' : 'Copy'}</span>
                         </button>
                         </div>
                       )}
@@ -389,7 +420,7 @@ function AiAssistant() {
                   </article>
                 ))}
             {sending && (
-              <div className="ai-typing" role="status"><LoaderCircle size={17} className="ai-spinner" /> Searching reviewed sources and preparing a response…</div>
+              <div className="ai-typing" role="status"><LoaderCircle size={17} className="ai-spinner" /> Finding reviewed information…</div>
             )}
             <div ref={bottomRef} />
           </div>
@@ -419,18 +450,16 @@ function AiAssistant() {
               disabled={chatBusy}
             />
             <div className="ai-composer-footer">
-              <small>General education only · {input.length}/2000</small>
+              <small>Educational information · not medical advice</small>
               <button className="button button-primary" type="submit" disabled={chatBusy || !input.trim()}>
                 {chatBusy ? <LoaderCircle size={16} className="ai-spinner" /> : <Send size={16} />}
                 <span>Send</span>
               </button>
             </div>
           </form>
-          <small className="ai-composer-disclaimer">FlowCare AI provides educational information and does not replace professional medical advice.</small>
         </section>
       </div>
 
-      <p className="resource-disclaimer">Not medical advice. For personal concerns or urgent symptoms, contact a qualified healthcare professional or local emergency service.</p>
       <ConfirmDialog
         open={Boolean(pendingDelete)}
         title="Delete this conversation?"

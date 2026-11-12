@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, LogOut, LockKeyhole, ShieldCheck, Trash2, UserRound } from 'lucide-react';
+import { Activity, Bell, LogOut, LockKeyhole, ShieldCheck, Trash2, UserRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { getApiErrorMessage } from '../../services/api';
@@ -7,12 +7,13 @@ import { changePassword, deleteAccount, deleteHealthData } from '../../services/
 import { useAuth } from '../../hooks/useAuth';
 import SectionTabs from '../../components/common/SectionTabs';
 import useSectionTab from '../../hooks/useSectionTab';
+import { getInitials } from '../../utils/dateUtils';
 
 const settingsTabs = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'cycle', label: 'Cycle preferences' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'privacy', label: 'Privacy & security' },
+  { id: 'profile', label: 'Profile', icon: UserRound },
+  { id: 'cycle', label: 'Cycle', icon: Activity },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+  { id: 'privacy', label: 'Privacy & security', icon: ShieldCheck },
 ];
 
 function profileFromUser(user) {
@@ -196,16 +197,25 @@ function Settings() {
   return (
     <div className="feature-page settings-page">
       <header className="feature-heading">
-        <div><span className="section-eyebrow">YOUR ACCOUNT, YOUR CHOICES</span><h2>Settings</h2><p>Manage your profile, reminders, privacy, and account security.</p></div>
+        <div><span className="section-eyebrow">YOUR ACCOUNT</span><h2>Profile & settings</h2><p>Make FlowCare feel right for you.</p></div>
         <span className="feature-heading-icon"><ShieldCheck size={20} /></span>
       </header>
       {error && <div className="form-alert" role="alert">{error}</div>}
       {notice && <div className="form-notice" role="status">{notice}</div>}
+      <section className="settings-account-card" aria-label="Signed-in account">
+        <span className="user-avatar settings-account-avatar" aria-hidden="true">{getInitials(user?.fullName)}</span>
+        <div className="settings-account-copy">
+          <strong>{user.fullName}</strong>
+          <span>{user.email}</span>
+        </div>
+        <span className="settings-account-status"><ShieldCheck size={15} /> Private account</span>
+      </section>
       <SectionTabs label="Settings sections" tabs={settingsTabs} activeTab={activeTab} onChange={setActiveTab} />
 
-      <form className="feature-card settings-section" onSubmit={saveProfile}>
+      {activeTab !== 'privacy' && (
+      <form className="feature-card settings-section settings-panel" onSubmit={saveProfile}>
         {activeTab === 'profile' && <>
-        <div className="feature-card-heading"><div><span className="section-eyebrow">PROFILE</span><h3><UserRound size={18} /> Personal details</h3></div></div>
+        <div className="feature-card-heading"><div><span className="section-eyebrow">PROFILE</span><h3>Personal details</h3><p>Update your account information.</p></div></div>
         <div className="feature-form-grid">
           <label className="field-label">Full name<input className="plain-input" minLength={2} maxLength={50} required value={profile.fullName} onChange={(event) => updateProfileField('fullName', event.target.value)} /></label>
           <label className="field-label">Email address<input className="plain-input" type="email" maxLength={254} required value={profile.email} onChange={(event) => updateProfileField('email', event.target.value)} /></label>
@@ -216,8 +226,7 @@ function Settings() {
         </>}
         {activeTab === 'cycle' && <>
         <div className="settings-subsection">
-          <h4>Cycle preferences</h4>
-          <p>These are estimates for personalization. Actual period records take precedence.</p>
+          <div className="settings-panel-heading"><h3>Cycle preferences</h3><p>Estimates help personalize your calendar. Recorded periods always take precedence.</p></div>
           <div className="feature-form-grid">
             <label className="field-label">Average cycle length<input className="plain-input" type="number" min="15" max="60" step="1" value={profile.averageCycleLength} onChange={(event) => updateProfileField('averageCycleLength', event.target.value)} placeholder="Not set" /></label>
             <label className="field-label">Average period duration<input className="plain-input" type="number" min="1" max="15" step="1" value={profile.averagePeriodDuration} onChange={(event) => updateProfileField('averagePeriodDuration', event.target.value)} placeholder="Not set" /></label>
@@ -229,7 +238,7 @@ function Settings() {
         </>}
         {activeTab === 'notifications' && <>
         <div className="settings-subsection">
-          <h4>Notification preferences</h4>
+          <div className="settings-panel-heading"><h3>Notifications</h3><p>Choose which reminders you’d like to receive.</p></div>
           <label className="settings-checkbox"><input type="checkbox" checked={profile.notificationPreferences.enabled} onChange={(event) => updatePreference('notificationPreferences', 'enabled', event.target.checked)} /> Enable reminder notifications</label>
           <label className="settings-checkbox"><input type="checkbox" checked={profile.notificationPreferences.periodReminders} onChange={(event) => updatePreference('notificationPreferences', 'periodReminders', event.target.checked)} /> Upcoming period reminders</label>
           <label className="settings-checkbox"><input type="checkbox" checked={profile.notificationPreferences.symptomReminders} onChange={(event) => updatePreference('notificationPreferences', 'symptomReminders', event.target.checked)} /> Daily symptom logging reminder</label>
@@ -237,15 +246,16 @@ function Settings() {
             <label className="field-label">Daily reminder time<input className="plain-input" type="time" value={profile.notificationPreferences.reminderTime} onChange={(event) => updatePreference('notificationPreferences', 'reminderTime', event.target.value)} /></label>
             <div className="permission-control"><span>Browser permission: <strong>{permission}</strong></span><button className="button button-outline" type="button" onClick={requestNotificationPermission} disabled={permission === 'granted'}><Bell size={15} /> {permission === 'granted' ? 'Enabled' : 'Enable browser alerts'}</button></div>
           </div>
-          <p className="feature-note">Permission is requested only when you choose the button above. Browser alerts work while FlowCare is open; in-app reminders remain available.</p>
+          <p className="feature-note">Browser alerts work while FlowCare is open. In-app reminders remain available without permission.</p>
         </div>
         <button className="button button-primary" type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save notification preferences'}</button>
         </>}
       </form>
+      )}
 
       {activeTab === 'privacy' && <>
       <section className="feature-card settings-section">
-        <div className="feature-card-heading"><div><span className="section-eyebrow">PRIVACY</span><h3><ShieldCheck size={18} /> Your data</h3></div></div>
+        <div className="feature-card-heading"><div><span className="section-eyebrow">PRIVACY</span><h3>Your data</h3></div></div>
         <p>Cycle and symptom records are private to your account. You can remove health tracking records and AI conversation history without deleting your account. Personal cycle and symptom records are not sent to the assistant.</p>
         <label className="settings-checkbox disabled-setting"><input type="checkbox" disabled checked={false} readOnly /> AI personalization consent (disabled; personal health records are not used by the assistant)</label>
         <div className="settings-actions">

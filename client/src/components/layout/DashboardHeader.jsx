@@ -1,4 +1,4 @@
-import { Bell, ChevronRight, Menu } from 'lucide-react';
+import { Activity, Bell, ChevronDown, ChevronRight, CircleUserRound, Menu, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { getInitials } from '../../utils/dateUtils';
@@ -27,7 +27,9 @@ function DashboardHeader({
   const firstName = user?.fullName?.trim().split(/\s+/)[0] || 'there';
   const location = useLocation();
   const notificationPanelRef = useRef(null);
+  const profileMenuRef = useRef(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const pageTitle = pageTitles[location.pathname] || (location.pathname.startsWith('/resources/') ? 'Resource detail' : 'FlowCare');
   const [today] = useState(() => new Intl.DateTimeFormat(undefined, {
     weekday: 'long',
@@ -36,12 +38,16 @@ function DashboardHeader({
   }).format(new Date()));
 
   useEffect(() => {
-    if (!notificationsOpen) return undefined;
+    if (!notificationsOpen && !profileMenuOpen) return undefined;
     function closeOnOutsideClick(event) {
       if (!notificationPanelRef.current?.contains(event.target)) setNotificationsOpen(false);
+      if (!profileMenuRef.current?.contains(event.target)) setProfileMenuOpen(false);
     }
     function closeOnEscape(event) {
-      if (event.key === 'Escape') setNotificationsOpen(false);
+      if (event.key === 'Escape') {
+        setNotificationsOpen(false);
+        setProfileMenuOpen(false);
+      }
     }
     document.addEventListener('pointerdown', closeOnOutsideClick);
     document.addEventListener('keydown', closeOnEscape);
@@ -49,7 +55,7 @@ function DashboardHeader({
       document.removeEventListener('pointerdown', closeOnOutsideClick);
       document.removeEventListener('keydown', closeOnEscape);
     };
-  }, [notificationsOpen]);
+  }, [notificationsOpen, profileMenuOpen]);
 
   function toggleNotifications() {
     const opening = !notificationsOpen;
@@ -131,8 +137,38 @@ function DashboardHeader({
             </section>
           )}
         </div>
-        <div className="user-avatar" aria-label={`Profile for ${user?.fullName || 'user'}`}>
-          {getInitials(user?.fullName)}
+        <div className="profile-menu-control" ref={profileMenuRef}>
+          <button
+            className="profile-menu-trigger"
+            type="button"
+            aria-label={`Open profile and settings for ${user?.fullName || 'your account'}`}
+            aria-expanded={profileMenuOpen}
+            aria-controls="profile-settings-menu"
+            onClick={() => setProfileMenuOpen((open) => !open)}
+          >
+            <span className="user-avatar">{getInitials(user?.fullName)}</span>
+            <ChevronDown size={15} aria-hidden="true" />
+          </button>
+          {profileMenuOpen && (
+            <nav className="profile-menu" id="profile-settings-menu" aria-label="Profile and settings">
+              <div className="profile-menu-heading">
+                <span className="user-avatar">{getInitials(user?.fullName)}</span>
+                <div><strong>{user?.fullName || 'Your account'}</strong><small>{user?.email}</small></div>
+              </div>
+              <Link to="/settings?section=profile" onClick={() => setProfileMenuOpen(false)}>
+                <CircleUserRound size={17} /> Profile
+              </Link>
+              <Link to="/settings?section=cycle" onClick={() => setProfileMenuOpen(false)}>
+                <Activity size={17} /> Cycle preferences
+              </Link>
+              <Link to="/settings?section=notifications" onClick={() => setProfileMenuOpen(false)}>
+                <Bell size={17} /> Notifications
+              </Link>
+              <Link to="/settings?section=privacy" onClick={() => setProfileMenuOpen(false)}>
+                <ShieldCheck size={17} /> Privacy & security
+              </Link>
+            </nav>
+          )}
         </div>
       </div>
     </header>

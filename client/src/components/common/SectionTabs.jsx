@@ -19,7 +19,7 @@ function SectionTabs({ label, tabs, activeTab, onChange }) {
 
   return (
     <div className="section-tabs" role="tablist" aria-label={label} onKeyDown={handleKeyDown}>
-      {tabs.map(({ id: tab, label: tabLabel, icon: Icon }) => (
+      {tabs.map(({ id: tab, label: tabLabel, icon: Icon, count }) => (
         <button
           key={tab}
           id={`${id}-${tab}`}
@@ -32,6 +32,7 @@ function SectionTabs({ label, tabs, activeTab, onChange }) {
         >
           {Icon && <Icon size={16} aria-hidden="true" />}
           <span>{tabLabel}</span>
+          {count !== undefined && <span className="section-tab-count">{count}</span>}
         </button>
       ))}
     </div>
