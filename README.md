@@ -30,7 +30,7 @@ Requirements: Node.js 22.14 or compatible, npm, MongoDB (local or Atlas), and Ol
    node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
    ```
 
-3. Configure the client environment using `client/.env.example` as a reference. Set `VITE_API_URL=http://localhost:5000/api`.
+3. Configure the client environment using `client/.env.example` as a reference. The Vite development server proxies `/api` to the local API; set `VITE_API_URL` only when using a different API origin.
 4. Install the API, client, and root development dependencies, then start both apps from the project root:
 
    ```sh
@@ -191,12 +191,13 @@ See [docs/DEVELOPMENT-CHECKLIST.md](./docs/DEVELOPMENT-CHECKLIST.md) for the rel
 
 ## Deployment preparation
 
-The repository includes a Render API blueprint at `render.yaml` and a Vercel SPA rewrite at `client/vercel.json`; these prepare deployment but do not deploy the application.
+The repository root `vercel.json` configures two Vercel services: the Vite client and the Express API. `/api/*` is rewritten to `flowcare-api`; all other paths are routed to `client`. The API service is reached through the public rewrite and does not need a client-to-API service binding.
 
-1. Deploy the API from the Render blueprint and set `MONGO_URI`, `JWT_SECRET`, and `CLIENT_URL` in the Render dashboard. Use an Atlas database user with a newly rotated password and least-privilege access.
-2. Deploy the `client` directory as the Vercel project root. Set `VITE_API_URL` to the deployed API origin ending in `/api`.
-3. Set `CLIENT_URL` to the exact deployed Vercel origin. The blueprint configures `COOKIE_SAME_SITE=none` and `COOKIE_SECURE=true` for a cross-site HTTPS client/API setup.
-4. Confirm `/api/health`, registration, login, logout, CSRF-protected mutations, and database connectivity using test accounts before launch.
-5. Restrict database network access to the hosting provider where practical. Never commit `.env` files or expose server secrets through Vite variables.
+1. Import the repository into Vercel with the repository root as the project root so Vercel reads `vercel.json`.
+2. Set server-side environment variables for the API service: `MONGO_URI`, `JWT_SECRET`, `CLIENT_URL` (the exact shared Vercel origin), `NODE_ENV=production`, `COOKIE_SAME_SITE=lax`, and `COOKIE_SECURE=true`. Use a least-privilege MongoDB user and rotate any previously exposed password.
+3. Set `OLLAMA_BASE_URL` to an Ollama service reachable by the Vercel API function. The local default `http://localhost:11434` will not reach Ollama from Vercel; keep the model endpoint private and authenticated.
+4. The client uses the same-origin `/api` path by default. If setting `VITE_API_URL` in Vercel, use `/api`; do not put server secrets in `VITE_*` variables.
+5. Confirm `/api/health`, registration, login, logout, CSRF-protected mutations, and database connectivity using test accounts before launch. The Vercel API entrypoint connects to MongoDB at runtime; it does not read the local `.env` file.
+6. Restrict database and model-service network access to the API where practical. Never commit `.env` files or expose server secrets through Vite variables.
 
 **Credential hygiene:** a MongoDB database password was previously exposed in shared project text. Rotate it in MongoDB Atlas before deploying or reusing the connection, then update the private `MONGO_URI` in the hosting environment. Do not paste credentials into chat or source control.

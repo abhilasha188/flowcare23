@@ -29,9 +29,10 @@
 ## Before production deployment
 
 - [ ] Rotate the previously exposed MongoDB password and update the private hosting secret.
-- [ ] Configure the Render API blueprint secrets (`MONGO_URI`, `JWT_SECRET`, `CLIENT_URL`) in the provider dashboard.
-- [ ] Configure the Vercel client root as `client/` and set `VITE_API_URL` to the production API `/api` URL.
-- [ ] Require HTTPS; use `COOKIE_SECURE=true` and `COOKIE_SAME_SITE=none` when the frontend and API are cross-site.
+- [ ] Import the repository root into Vercel so the root `vercel.json` builds the client and API services.
+- [ ] Configure Vercel API service secrets (`MONGO_URI`, `JWT_SECRET`, exact `CLIENT_URL`, and a reachable private `OLLAMA_BASE_URL`).
+- [ ] Confirm the Vercel rewrites route `/api/*` to `flowcare-api` and other paths to `client`.
+- [ ] Require HTTPS and set `COOKIE_SECURE=true`; same-origin services can use `COOKIE_SAME_SITE=lax`.
 - [ ] Restrict MongoDB network access and enable backups/retention appropriate for health data.
 - [ ] Configure the Atlas `flowcare_vector_index` on `knowledgechunks` with the actual ingestion-reported vector dimension.
 - [ ] Run knowledge ingestion only for reviewed, authorized educational documents and verify the source metadata before launch.
@@ -40,4 +41,4 @@
 - [ ] Confirm logs do not include passwords, tokens, database URIs, or personal health-record contents.
 - [ ] Publish a privacy notice and retention/support contact before collecting real user health data.
 
-Deployment configuration in this repository is preparation only; it does not provision infrastructure or deploy the service.
+Deployment configuration in this repository is preparation only; it does not provision infrastructure or deploy the services.
