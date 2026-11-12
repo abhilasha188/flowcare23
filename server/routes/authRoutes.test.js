@@ -43,7 +43,7 @@ test('requires a valid session for the current-user endpoint', async () => {
   assert.equal((await response.json()).success, false);
 });
 
-test('requires authentication for all private tracking, analytics, reminder, and profile endpoints', async () => {
+test('requires authentication for private tracking, analytics, profile, and AI endpoints', async () => {
   for (const path of [
     '/api/cycles',
     '/api/predictions',
@@ -55,8 +55,21 @@ test('requires authentication for all private tracking, analytics, reminder, and
     '/api/symptoms',
     '/api/reminders',
     '/api/users/me',
+    '/api/ai/health',
+    '/api/ai/history',
+    '/api/ai/conversations',
   ]) {
     const response = await fetch(`${baseUrl}${path}`);
+    assert.equal(response.status, 401, `${path} must require a session`);
+  }
+
+  for (const [path, method] of [
+    ['/api/ai/chat', 'POST'],
+    ['/api/ai/feedback', 'POST'],
+    ['/api/ai/conversations/123e4567-e89b-42d3-a456-426614174000', 'DELETE'],
+    ['/api/ai/conversations/123e4567-e89b-42d3-a456-426614174000', 'PATCH'],
+  ]) {
+    const response = await fetch(`${baseUrl}${path}`, { method });
     assert.equal(response.status, 401, `${path} must require a session`);
   }
 });

@@ -10,9 +10,20 @@ test('normalizes reminders with a timezone-aware instant', () => {
     message: 'A personal estimate.',
     scheduledAt: '2025-03-08T09:30:00+05:30',
   });
+
   assert.equal(reminder.scheduledAt.toISOString(), '2025-03-08T04:00:00.000Z');
   assert.equal(reminder.enabled, true);
   assert.equal(reminder.status, 'scheduled');
+});
+
+test('accepts period-preparation and general wellness reminder types', () => {
+  for (const type of ['period-preparation', 'wellness']) {
+    assert.equal(normalizeReminderInput({
+      type,
+      title: 'A reminder',
+      scheduledAt: '2025-03-08T09:30:00Z',
+    }).type, type);
+  }
 });
 
 test('rejects invalid reminder content and timezone-less date-times', () => {

@@ -5,9 +5,9 @@ const { csrfProtection } = require('../middleware/csrfProtection');
 const validateRequest = require('../middleware/validateRequest');
 const writeRateLimiter = require('../middleware/writeRateLimiter');
 const { create, list, remove, update } = require('../controllers/reminderController');
+const types = require('../utils/reminderTypes');
 
 const router = express.Router();
-const types = ['period', 'symptom', 'custom'];
 const dateTimeWithZone = /^\d{4}-\d{2}-\d{2}T.+(?:Z|[+-]\d{2}:\d{2})$/i;
 const allowedFields = ['type', 'title', 'message', 'scheduledAt', 'enabled', 'status'];
 

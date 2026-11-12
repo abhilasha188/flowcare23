@@ -1,13 +1,13 @@
 :root {
-  --flow-primary: #e8a0b5;
-  --flow-secondary: #c7b9e8;
-  --flow-background: #fff9fa;
-  --flow-accent: #68465f;
-  --flow-text: #302a32;
-  --flow-muted: #756d77;
-  --flow-border: #eee3e9;
-  --flow-danger: #a63c54;
-  --flow-success: #3d705e;
+  --flow-primary: #b76e8b;
+  --flow-secondary: #a99acb;
+  --flow-background: #faf9fc;
+  --flow-accent: #6b5267;
+  --flow-text: #292633;
+  --flow-muted: #777281;
+  --flow-border: #eae6ef;
+  --flow-danger: #d46e78;
+  --flow-success: #4c9b7a;
 }
 
 .auth-page {

@@ -12,8 +12,17 @@ import { getCycles, getPredictions, createCycle, updateCycle, deleteCycle } from
 import { getApiErrorMessage } from '../../services/api';
 import { formatDate, getDateRange } from '../../utils/dateUtils';
 import { useAuth } from '../../hooks/useAuth';
+import SectionTabs from '../../components/common/SectionTabs';
+import useSectionTab from '../../hooks/useSectionTab';
+
+const cycleTabs = [
+  { id: 'calendar', label: 'Calendar' },
+  { id: 'history', label: 'Cycle history' },
+  { id: 'predictions', label: 'Predictions' },
+];
 
 function CycleTracker() {
+  const [activeTab, setActiveTab] = useSectionTab('view', 'calendar', cycleTabs);
   const [cycles, setCycles] = useState([]);
   const [predictions, setPredictions] = useState({});
   const [loading, setLoading] = useState(true);
@@ -59,9 +68,10 @@ function CycleTracker() {
 
   useEffect(() => {
     if (location.hash === '#history') {
+      setActiveTab('history');
       document.getElementById('history')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [location.hash, loading]);
+  }, [location.hash, loading, setActiveTab]);
 
   const preferencesOpen = Boolean(location.state?.openPreferences) || showPreferences;
 
@@ -146,8 +156,9 @@ function CycleTracker() {
       {notice && <div className="form-notice tracker-notice" role="status">{notice}<button type="button" onClick={() => setNotice('')} aria-label="Dismiss message">×</button></div>}
 
       <CycleSummary predictions={predictions} />
+      <SectionTabs label="Cycle tracker sections" tabs={cycleTabs} activeTab={activeTab} onChange={setActiveTab} />
 
-      <div className="tracker-layout">
+      {activeTab === 'calendar' && <div className="tracker-layout tab-panel" role="tabpanel">
         <CycleCalendar
           cycles={cycles}
           predictions={predictions}
@@ -165,9 +176,9 @@ function CycleTracker() {
           <p className="tracker-estimate-note">Predictions are estimates from your available records and may not reflect your individual cycle.</p>
           <button className="button button-outline tracker-full-button" type="button" onClick={openCreate}><CalendarPlus size={16} /> Log a period</button>
         </section>
-      </div>
+      </div>}
 
-      <section className="dashboard-panel history-panel" id="history">
+      {activeTab === 'history' && <section className="dashboard-panel history-panel tab-panel" id="history" role="tabpanel">
         <div className="panel-heading">
           <div><span className="section-eyebrow">YOUR RECORDS</span><h2>Cycle history</h2></div>
           {cycles.length > 1 && <span className="history-count">{cycles.length} records <ArrowDownUp size={13} /></span>}
@@ -203,7 +214,20 @@ function CycleTracker() {
             </table>
           </div>
         )}
-      </section>
+      </section>}
+
+      {activeTab === 'predictions' && <section className="dashboard-panel tracker-side-panel tab-panel" role="tabpanel">
+        <div className="panel-heading"><div><span className="section-eyebrow">PERSONAL ESTIMATES</span><h2>Cycle predictions</h2></div></div>
+        <div className="tracker-detail-list">
+          <div><span>Estimated next period</span><strong>{formatDate(predictions.predictedNextPeriodDate)}</strong></div>
+          <div><span>Average cycle</span><strong>{predictions.averageCycleLength ? `${predictions.averageCycleLength} days` : 'Not enough data'}</strong></div>
+          <div><span>Average period</span><strong>{predictions.averagePeriodDuration ? `${predictions.averagePeriodDuration} days` : 'Not enough data'}</strong></div>
+          <div><span>Estimated ovulation</span><strong>{formatDate(predictions.ovulationDate)}</strong></div>
+          <div><span>Historical consistency</span><strong>{predictions.predictionConfidence?.label || 'Limited data'}</strong></div>
+        </div>
+        <p className="tracker-estimate-note">Predictions are estimates from your available records and may not reflect your individual cycle. Calendar estimates cannot confirm ovulation, fertility, or a medical condition.</p>
+        <button className="button button-outline tracker-full-button" type="button" onClick={() => setShowPreferences(true)}>Update cycle preferences</button>
+      </section>}
 
       {modalOpen && (
         <PeriodModal

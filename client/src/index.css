@@ -4,8 +4,8 @@
   font-family: Inter, 'Segoe UI', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #302a32;
-  background: #fff9fa;
+  color: #292633;
+  background: #faf9fc;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -25,8 +25,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at top, rgba(245, 205, 223, 0.25), transparent 22%),
-    linear-gradient(135deg, #fff9fa 0%, #fffafd 42%, #f8f5fb 100%);
+    radial-gradient(circle at top left, rgba(169, 154, 203, 0.1), transparent 28%),
+    linear-gradient(135deg, #faf9fc 0%, #f8f7fa 52%, #f5f3f8 100%);
 }
 
 #root {
@@ -43,6 +43,6 @@ button {
 }
 
 ::selection {
-  color: #302a32;
-  background: rgba(232, 160, 181, 0.35);
+  color: #292633;
+  background: rgba(183, 110, 139, 0.22);
 }

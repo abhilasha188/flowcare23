@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 const Reminder = require('../models/Reminder');
-
-const REMINDER_TYPES = ['period', 'symptom', 'custom'];
+const REMINDER_TYPES = require('../utils/reminderTypes');
 const TIMEZONE_SUFFIX = /(?:Z|[+-]\d{2}:\d{2})$/i;
 
 class ReminderError extends Error {

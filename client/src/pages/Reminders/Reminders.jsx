@@ -11,8 +11,24 @@ import {
 } from '../../services/reminderService';
 import { useAuth } from '../../hooks/useAuth';
 import useReminderNotifications from '../../hooks/useReminderNotifications';
+import SectionTabs from '../../components/common/SectionTabs';
+import useSectionTab from '../../hooks/useSectionTab';
+
+const reminderTabs = [
+  { id: 'all', label: 'All reminders' },
+  { id: 'upcoming', label: 'Upcoming' },
+  { id: 'past', label: 'Past' },
+  { id: 'paused', label: 'Paused' },
+];
 
 const blankForm = { type: 'custom', title: '', message: '', scheduledAt: '' };
+const reminderTypeLabels = {
+  period: 'Expected period',
+  'period-preparation': 'Period preparation',
+  symptom: 'Symptom logging',
+  wellness: 'General wellness',
+  custom: 'Custom',
+};
 
 function localDateTimeValue(value) {
   const date = new Date(value);
@@ -21,6 +37,7 @@ function localDateTimeValue(value) {
 }
 
 function Reminders() {
+  const [activeTab, setActiveTab] = useSectionTab('view', 'all', reminderTabs);
   const { user } = useAuth();
   const [refresh, setRefresh] = useState(0);
   const [listResult, setListResult] = useState({ key: null, reminders: [], error: '' });
@@ -36,6 +53,14 @@ function Reminders() {
   const loading = listResult.key !== listKey;
   const reminders = listResult.reminders;
   const listError = listResult.key === listKey ? listResult.error : '';
+  const visibleReminders = reminders.filter((reminder) => {
+    if (activeTab === 'paused') return !reminder.enabled;
+    if (!reminder.enabled) return activeTab === 'all';
+    const isPast = reminder.derivedStatus === 'past' || reminder.derivedStatus === 'dismissed';
+    if (activeTab === 'past') return isPast;
+    if (activeTab === 'upcoming') return !isPast;
+    return true;
+  });
 
   useReminderNotifications(user, reminders);
 
@@ -139,7 +164,9 @@ function Reminders() {
             <label className="field-label">Reminder type
               <select className="plain-input" value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}>
                 <option value="period">Upcoming period estimate</option>
+                <option value="period-preparation">Period preparation</option>
                 <option value="symptom">Symptom logging</option>
+                <option value="wellness">General wellness</option>
                 <option value="custom">Custom</option>
               </select>
             </label>
@@ -157,18 +184,19 @@ function Reminders() {
         </section>
 
         <section className="feature-card">
-          <div className="feature-card-heading"><div><span className="section-eyebrow">YOUR SCHEDULE</span><h3>Reminder history</h3></div><span className="entry-count">{reminders.length}</span></div>
+          <div className="feature-card-heading"><div><span className="section-eyebrow">YOUR SCHEDULE</span><h3>Reminder history</h3></div><span className="entry-count">{visibleReminders.length}</span></div>
+          <SectionTabs label="Reminder status" tabs={reminderTabs} activeTab={activeTab} onChange={setActiveTab} />
           <p className="feature-note">Browser alerts only appear while FlowCare is open and permission is granted. In-app status remains available here.</p>
           {loading && <div className="feature-loading" role="status">Loading reminders…</div>}
-          {!loading && reminders.length === 0 && <div className="feature-empty"><CalendarClock size={23} /><h4>No reminders yet</h4><p>Add a period estimate, symptom check-in, or custom reminder.</p></div>}
-          {!loading && reminders.length > 0 && (
+          {!loading && visibleReminders.length === 0 && <div className="feature-empty"><CalendarClock size={23} /><h4>{reminders.length ? 'No reminders in this view' : 'No reminders yet'}</h4><p>{reminders.length ? 'Choose another reminder status to see more.' : 'Add a period estimate, symptom check-in, or custom reminder.'}</p></div>}
+          {!loading && visibleReminders.length > 0 && (
             <div className="reminder-list">
-              {reminders.map((reminder) => (
+              {visibleReminders.map((reminder) => (
                 <article className={`reminder-item${reminder.enabled ? '' : ' is-disabled'}`} key={reminder._id}>
                   <div className="reminder-item-main">
                     <span className="reminder-status">{reminder.derivedStatus}</span>
                     <h4>{reminder.title}</h4>
-                    <p>{reminder.message || `${reminder.type[0].toUpperCase()}${reminder.type.slice(1)} reminder`}</p>
+                    <p>{reminder.message || `${reminderTypeLabels[reminder.type] || 'Custom'} reminder`}</p>
                     <time dateTime={reminder.scheduledAt}>{new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(reminder.scheduledAt))}</time>
                   </div>
                   <div className="reminder-item-actions">

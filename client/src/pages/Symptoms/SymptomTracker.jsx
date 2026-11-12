@@ -3,6 +3,14 @@ import { Activity, CalendarDays, PencilLine, Plus, Search, Trash2 } from 'lucide
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { getApiErrorMessage } from '../../services/api';
 import { deleteSymptom, getSymptoms, saveSymptom, updateSymptom } from '../../services/symptomService';
+import SectionTabs from '../../components/common/SectionTabs';
+import useSectionTab from '../../hooks/useSectionTab';
+
+const symptomTabs = [
+  { id: 'daily', label: 'Daily log' },
+  { id: 'history', label: 'History' },
+  { id: 'trends', label: 'Trends' },
+];
 
 const symptomOptions = [
   'Cramps', 'Headache', 'Bloating', 'Breast tenderness', 'Acne', 'Back pain',
@@ -34,6 +42,7 @@ function formatEntryDate(value) {
 }
 
 function SymptomTracker() {
+  const [activeTab, setActiveTab] = useSectionTab('view', 'daily', symptomTabs);
   const [today] = useState(() => localDateKey(new Date()));
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState('');
@@ -79,6 +88,13 @@ function SymptomTracker() {
       for (const symptom of entry.symptoms || []) {
         counts.set(symptom.name, (counts.get(symptom.name) || 0) + 1);
       }
+    }
+    return [...counts.entries()].sort((first, second) => second[1] - first[1]);
+  }, [entries]);
+  const moodFrequency = useMemo(() => {
+    const counts = new Map();
+    for (const entry of entries) {
+      if (entry.mood) counts.set(entry.mood, (counts.get(entry.mood) || 0) + 1);
     }
     return [...counts.entries()].sort((first, second) => second[1] - first[1]);
   }, [entries]);
@@ -198,7 +214,9 @@ function SymptomTracker() {
       {(error || listError) && <div className="form-alert" role="alert">{error || listError}</div>}
       {notice && <div className="form-notice" role="status">{notice}</div>}
 
-      <section className="feature-card symptom-form-card" aria-labelledby="symptom-form-heading">
+      <SectionTabs label="Symptoms and mood sections" tabs={symptomTabs} activeTab={activeTab} onChange={setActiveTab} />
+
+      {activeTab === 'daily' && <section className="feature-card symptom-form-card tab-panel" role="tabpanel" aria-labelledby="symptom-form-heading">
         <div className="feature-card-heading">
           <div><span className="section-eyebrow">{editingId ? 'UPDATE YOUR LOG' : 'A MOMENT FOR YOU'}</span><h3 id="symptom-form-heading">{editingId ? 'Edit daily entry' : 'Log today or another day'}</h3></div>
           {editingId && <button className="button button-muted" type="button" onClick={resetForm}>Cancel edit</button>}
@@ -264,9 +282,9 @@ function SymptomTracker() {
             <span className="feature-helper"><Activity size={15} /> Only the details you choose to record are saved.</span>
           </div>
         </form>
-      </section>
+      </section>}
 
-      <section className="feature-card history-card">
+      {activeTab === 'history' && <section className="feature-card history-card tab-panel" role="tabpanel">
         <div className="feature-card-heading">
           <div><span className="section-eyebrow">YOUR RECORDS</span><h3>Symptom history</h3></div>
           <span className="entry-count">{entries.length} shown</span>
@@ -314,7 +332,33 @@ function SymptomTracker() {
             ))}
           </div>
         )}
-      </section>
+      </section>}
+
+      {activeTab === 'trends' && <section className="feature-card tab-panel" role="tabpanel">
+        <div className="feature-card-heading">
+          <div><span className="section-eyebrow">YOUR RECORDED CHECK-INS</span><h3>Symptom and mood trends</h3></div>
+          <span className="entry-count">{entries.length} shown</span>
+        </div>
+        <p className="feature-note">These summaries describe only the records currently loaded. They do not establish causes or diagnose a health condition.</p>
+        {loading ? <div className="feature-loading" role="status">Loading your trends…</div> : (
+          <div className="symptom-trend-grid">
+            <section className="symptom-trend-card">
+              <h4>Symptoms recorded</h4>
+              {frequency.length ? <ol>{frequency.map(([name, count]) => <li key={name}><span>{name}</span><strong>{count}</strong></li>)}</ol> : <p>No symptom records in this range yet.</p>}
+            </section>
+            <section className="symptom-trend-card">
+              <h4>Moods recorded</h4>
+              {moodFrequency.length ? <ol>{moodFrequency.map(([name, count]) => <li key={name}><span>{name}</span><strong>{count}</strong></li>)}</ol> : <p>No mood records in this range yet.</p>}
+            </section>
+            <section className="symptom-trend-card">
+              <h4>Daily check-ins</h4>
+              <strong className="symptom-trend-total">{entries.length}</strong>
+              <p>Saved entries in the selected date range.</p>
+            </section>
+          </div>
+        )}
+        <button className="button button-outline" type="button" onClick={() => setActiveTab('history')}>Review history and filters</button>
+      </section>}
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         title="Delete this daily entry?"

@@ -15,8 +15,10 @@ import ResourceDetail from './pages/Resources/ResourceDetail';
 import DashboardLayout from './components/layout/DashboardLayout';
 import './App.css';
 import './feature-pages.css';
+import './motion.css';
 
 const Insights = lazy(() => import('./pages/Insights/Insights'));
+const AiAssistant = lazy(() => import('./pages/AiAssistant/AiAssistant'));
 
 function NotFound() {
   return (
@@ -60,6 +62,7 @@ function App() {
             <Route path="/reminders" element={<Reminders />} />
             <Route path="/resources" element={<Resources />} />
             <Route path="/resources/:slug" element={<ResourceDetail />} />
+            <Route path="/ai-assistant" element={<Suspense fallback={<div className="feature-loading" role="status">Loading assistant…</div>}><AiAssistant /></Suspense>} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

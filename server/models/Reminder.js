@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
+const reminderTypes = require('../utils/reminderTypes');
 
 const reminderSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    type: { type: String, enum: ['period', 'symptom', 'custom'], required: true },
+    type: { type: String, enum: reminderTypes, required: true },
     title: { type: String, required: true, trim: true, minlength: 2, maxlength: 80 },
     message: { type: String, trim: true, maxlength: 500, default: '' },
     scheduledAt: { type: Date, required: true },

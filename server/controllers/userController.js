@@ -1,4 +1,5 @@
 const Cycle = require('../models/Cycle');
+const ChatMessage = require('../models/ChatMessage');
 const Reminder = require('../models/Reminder');
 const Symptom = require('../models/Symptom');
 const User = require('../models/User');
@@ -101,10 +102,11 @@ async function changePassword(req, res, next) {
 async function deleteHealthData(req, res, next) {
   try {
     const userId = req.user._id;
-    const [cycles, symptoms, reminders] = await Promise.all([
+    const [cycles, symptoms, reminders, aiMessages] = await Promise.all([
       Cycle.deleteMany({ userId }),
       Symptom.deleteMany({ userId }),
       Reminder.deleteMany({ userId }),
+      ChatMessage.deleteMany({ userId }),
     ]);
     req.user.averageCycleLength = undefined;
     req.user.averagePeriodDuration = undefined;
@@ -116,6 +118,7 @@ async function deleteHealthData(req, res, next) {
         cycles: cycles.deletedCount,
         symptoms: symptoms.deletedCount,
         reminders: reminders.deletedCount,
+        aiMessages: aiMessages.deletedCount,
       },
     });
   } catch (error) {
@@ -138,6 +141,7 @@ async function deleteAccount(req, res, next) {
       Cycle.deleteMany({ userId }),
       Symptom.deleteMany({ userId }),
       Reminder.deleteMany({ userId }),
+      ChatMessage.deleteMany({ userId }),
     ]);
     await user.deleteOne();
     clearAuthCookie(res);

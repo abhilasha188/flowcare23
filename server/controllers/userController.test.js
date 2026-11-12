@@ -1,10 +1,11 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const Cycle = require('../models/Cycle');
+const ChatMessage = require('../models/ChatMessage');
 const Reminder = require('../models/Reminder');
 const Symptom = require('../models/Symptom');
 const User = require('../models/User');
-const { changePassword, deleteHealthData } = require('./userController');
+const { changePassword, deleteAccount, deleteHealthData } = require('./userController');
 
 function responseStub() {
   return {
@@ -54,15 +55,16 @@ test('changing password increments the session version and clears the session co
 });
 
 test('health-data deletion scopes every record collection to the current user', async () => {
-  const originals = [Cycle, Symptom, Reminder].map((model) => model.deleteMany);
+  const originals = [Cycle, Symptom, Reminder, ChatMessage].map((model) => model.deleteMany);
   const userId = '507f1f77bcf86cd799439011';
   const queries = [];
-  [Cycle, Symptom, Reminder].forEach((model, index) => {
+  [Cycle, Symptom, Reminder, ChatMessage].forEach((model, index) => {
     model.deleteMany = async (query) => {
       queries[index] = query;
       return { deletedCount: index + 1 };
     };
   });
+
   const user = {
     _id: userId,
     averageCycleLength: 28,
@@ -74,13 +76,47 @@ test('health-data deletion scopes every record collection to the current user', 
   try {
     await deleteHealthData({ user }, res, (error) => { throw error; });
 
-    assert.deepEqual(queries, [{ userId }, { userId }, { userId }]);
+    assert.deepEqual(queries, [{ userId }, { userId }, { userId }, { userId }]);
     assert.equal(user.averageCycleLength, undefined);
     assert.equal(user.averagePeriodDuration, undefined);
-    assert.deepEqual(res.body.deleted, { cycles: 1, symptoms: 2, reminders: 3 });
+    assert.deepEqual(res.body.deleted, { cycles: 1, symptoms: 2, reminders: 3, aiMessages: 4 });
   } finally {
-    [Cycle, Symptom, Reminder].forEach((model, index) => {
+    [Cycle, Symptom, Reminder, ChatMessage].forEach((model, index) => {
       model.deleteMany = originals[index];
     });
+  }
+});
+
+test('account deletion removes AI messages alongside other user-owned records', async () => {
+  const models = [Cycle, Symptom, Reminder, ChatMessage];
+  const originals = models.map((model) => model.deleteMany);
+  const originalFindById = User.findById;
+  const userId = '507f1f77bcf86cd799439011';
+  const queries = [];
+  const account = {
+    _id: userId,
+    comparePassword: async () => true,
+    deleteOne: async () => {},
+  };
+  User.findById = () => ({ select: async () => account });
+  models.forEach((model, index) => {
+    model.deleteMany = async (query) => {
+      queries[index] = query;
+      return { deletedCount: 1 };
+    };
+  });
+  const res = responseStub();
+
+  try {
+    await deleteAccount({
+      user: { _id: userId },
+      body: { password: 'valid-password', confirmation: 'DELETE' },
+    }, res, (error) => { throw error; });
+
+    assert.deepEqual(queries, models.map(() => ({ userId })));
+    assert.equal(res.statusCode, 200);
+  } finally {
+    models.forEach((model, index) => { model.deleteMany = originals[index]; });
+    User.findById = originalFindById;
   }
 });

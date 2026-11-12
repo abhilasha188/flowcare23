@@ -20,7 +20,11 @@
 - [ ] Verify `/api/health` reports database connectivity and production CORS uses the exact client origin.
 - [ ] Verify browser notifications only appear after permission is granted; do not treat them as background delivery.
 - [ ] Confirm educational links remain current and preserve source attribution.
-- [ ] Keep AI assistant/RAG disabled until separately designed, reviewed, and requested.
+- [ ] Confirm AI chat uses only reviewed knowledge chunks, returns real source URLs, and falls back when relevance is below threshold.
+- [ ] Verify deterministic handling for urgent symptoms, diagnosis requests, and medication/treatment requests.
+- [ ] Verify conversation history, feedback, and deletion are scoped to the signed-in user and health-data deletion also removes AI chat data.
+- [ ] Confirm the Atlas Vector Search index uses the dimension reported by the configured Ollama embedding model and is Ready.
+- [ ] Confirm Ollama is reachable only through a private, authenticated network in hosted deployments; localhost is for local development only.
 
 ## Before production deployment
 
@@ -29,6 +33,9 @@
 - [ ] Configure the Vercel client root as `client/` and set `VITE_API_URL` to the production API `/api` URL.
 - [ ] Require HTTPS; use `COOKIE_SECURE=true` and `COOKIE_SAME_SITE=none` when the frontend and API are cross-site.
 - [ ] Restrict MongoDB network access and enable backups/retention appropriate for health data.
+- [ ] Configure the Atlas `flowcare_vector_index` on `knowledgechunks` with the actual ingestion-reported vector dimension.
+- [ ] Run knowledge ingestion only for reviewed, authorized educational documents and verify the source metadata before launch.
+- [ ] Configure Ollama on the API host or a private network; never expose its unauthenticated API publicly.
 - [ ] Test signup, login, refresh/session restoration, logout, and one authenticated write using a non-production account.
 - [ ] Confirm logs do not include passwords, tokens, database URIs, or personal health-record contents.
 - [ ] Publish a privacy notice and retention/support contact before collecting real user health data.

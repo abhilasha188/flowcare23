@@ -1,4 +1,4 @@
-import { ArrowUpRight, CalendarPlus, Clock3, PencilLine, SmilePlus } from 'lucide-react';
+import { ArrowUpRight, Bot, CalendarPlus, Clock3, PencilLine, SmilePlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const actions = [
@@ -7,6 +7,7 @@ const actions = [
   { title: 'Cycle history', text: 'Review past records', icon: ArrowUpRight, to: '/cycle-tracker#history', style: 'action-peach' },
   { title: 'Update cycle information', text: 'Adjust your averages', icon: PencilLine, to: '/cycle-tracker', state: { openPreferences: true }, style: 'action-mist' },
   { title: 'Log symptoms', text: 'Add a daily check-in', icon: SmilePlus, to: '/symptoms', style: 'action-peach' },
+  { title: 'Ask the health assistant', text: 'Explore reviewed health information', icon: Bot, to: '/ai-assistant', style: 'action-mist' },
 ];
 
 function QuickActions() {

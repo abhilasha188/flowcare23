@@ -9,8 +9,17 @@ import StatisticsCard from '../../components/dashboard/StatisticsCard';
 import { getDashboardOverview } from '../../services/dashboardService';
 import { getApiErrorMessage } from '../../services/api';
 import { formatDate } from '../../utils/dateUtils';
+import SectionTabs from '../../components/common/SectionTabs';
+import useSectionTab from '../../hooks/useSectionTab';
+
+const dashboardTabs = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'cycle', label: 'Cycle summary' },
+  { id: 'activity', label: 'Health activity' },
+];
 
 function Dashboard() {
+  const [activeTab, setActiveTab] = useSectionTab('view', 'overview', dashboardTabs);
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -100,21 +109,35 @@ function Dashboard() {
         <Link className="button button-primary dashboard-add-button" to="/cycle-tracker"><CalendarDays size={17} /> Log period</Link>
       </div>
 
-      <CycleOverviewCard overview={overview} />
+      <SectionTabs label="Dashboard sections" tabs={dashboardTabs} activeTab={activeTab} onChange={setActiveTab} />
 
-      <section className="dashboard-section">
-        <div className="section-heading">
-          <div><span className="section-eyebrow">YOUR NUMBERS</span><h2>Cycle statistics</h2></div>
+      {activeTab === 'overview' && (
+        <div role="tabpanel" className="tab-panel">
+          <CycleOverviewCard overview={overview} />
+          <section className="dashboard-section">
+            <div className="section-heading"><div><span className="section-eyebrow">YOUR NUMBERS</span><h2>Cycle statistics</h2></div></div>
+            <div className="stats-grid">{stats.slice(0, 4).map((stat) => <StatisticsCard key={stat.label} {...stat} />)}</div>
+          </section>
+          <QuickActions />
         </div>
-        <div className="stats-grid">
-          {stats.map((stat) => <StatisticsCard key={stat.label} {...stat} />)}
-        </div>
-      </section>
+      )}
 
-      <div className="dashboard-lower-grid">
-        <RecentCycles cycles={overview.recentCycles || []} />
-        <QuickActions />
-      </div>
+      {activeTab === 'cycle' && (
+        <div role="tabpanel" className="tab-panel">
+          <CycleOverviewCard overview={overview} />
+          <section className="dashboard-section">
+            <div className="section-heading"><div><span className="section-eyebrow">YOUR NUMBERS</span><h2>Cycle statistics</h2></div></div>
+            <div className="stats-grid">{stats.slice(0, 4).map((stat) => <StatisticsCard key={stat.label} {...stat} />)}</div>
+          </section>
+          <div className="dashboard-lower-grid"><RecentCycles cycles={overview.recentCycles || []} /><section className="dashboard-panel">
+            <div className="panel-heading"><div><span className="section-eyebrow">CYCLE RECORDS</span><h2>Your recent periods</h2></div><Link className="panel-link" to="/cycle-tracker#history">View all</Link></div>
+            <p className="feature-note">Your estimates use your period records and profile preferences. They do not confirm biological events.</p>
+            <Link className="button button-outline" to="/cycle-tracker">Open cycle calendar</Link>
+          </section></div>
+        </div>
+      )}
+
+      {activeTab === 'activity' && <div role="tabpanel" className="tab-panel">
       <div className="dashboard-module-grid">
         <section className="feature-card dashboard-data-panel">
           <div className="feature-card-heading">
@@ -156,6 +179,7 @@ function Dashboard() {
           <small className="feature-note">Observations only; they do not imply cause or diagnosis.</small>
         </section>
       </div>
+      </div>}
       <p className="dashboard-disclaimer">Cycle estimates can vary and are not a substitute for professional medical advice.</p>
     </div>
   );

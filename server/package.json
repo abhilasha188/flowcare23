@@ -6,20 +6,25 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "ingest:knowledge": "node scripts/ingestKnowledge.js",
+    "prebuild": "node --check controllers/aiController.js && node --check routes/aiRoutes.js && node --check models/KnowledgeChunk.js && node --check models/ChatMessage.js && node --check services/ollamaService.js && node --check rag/chunking.js && node --check rag/documentProcessor.js && node --check rag/ingestion.js && node --check rag/promptBuilder.js && node --check rag/ragService.js && node --check rag/retrieval.js && node --check rag/safety.js && node --check scripts/ingestKnowledge.js && node --check utils/reminderTypes.js",
     "build": "node --check server.js && node --check app.js && node --check config/db.js && node --check controllers/authController.js && node --check controllers/cycleController.js && node --check controllers/analyticsController.js && node --check controllers/userController.js && node --check controllers/symptomController.js && node --check controllers/reminderController.js && node --check controllers/resourceController.js && node --check middleware/authMiddleware.js && node --check middleware/csrfProtection.js && node --check middleware/errorHandler.js && node --check middleware/validateRequest.js && node --check middleware/writeRateLimiter.js && node --check models/User.js && node --check models/Cycle.js && node --check models/Symptom.js && node --check models/Reminder.js && node --check routes/authRoutes.js && node --check routes/cycleRoutes.js && node --check routes/predictionRoutes.js && node --check routes/analyticsRoutes.js && node --check routes/userRoutes.js && node --check routes/symptomRoutes.js && node --check routes/reminderRoutes.js && node --check routes/resourceRoutes.js && node --check services/cycleService.js && node --check services/predictionService.js && node --check services/analyticsService.js && node --check services/symptomService.js && node --check services/reminderService.js && node --check data/resources.js && node --check utils/auth.js && node --check utils/validation.js",
     "test": "node --test"
   },
   "dependencies": {
+    "axios": "^1.21.1",
     "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "express-validator": "^7.2.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.8.3"
+    "mongoose": "^8.8.3",
+    "ollama": "^0.6.4",
+    "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

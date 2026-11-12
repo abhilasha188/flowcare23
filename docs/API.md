@@ -66,7 +66,7 @@ Allowed moods: `happy`, `calm`, `sad`, `irritated`, `anxious`, `stressed`, `ener
 
 ## Reminders
 
-`scheduledAt` must be a valid ISO date-time with a timezone. Reminder types are `period`, `symptom`, and `custom`; title length is 2–80 characters and message length is at most 500.
+`scheduledAt` must be a valid ISO date-time with a timezone. Reminder types are `period`, `period-preparation`, `symptom`, `wellness`, and `custom`; title length is 2–80 characters and message length is at most 500.
 
 | Method | Path | Notes |
 | --- | --- | --- |
@@ -85,7 +85,7 @@ Browser notifications require browser permission and are delivered only while th
 | `GET` | `/api/users/me` | Returns the current profile and preferences. |
 | `PATCH` | `/api/users/me` | Updates profile, date of birth, cycle averages, notification preferences, and prediction preferences. Changing email requires `currentPassword`. |
 | `POST` | `/api/users/change-password` | Requires `currentPassword`, `newPassword`, and `confirmNewPassword`. Invalidates old sessions; sign in again afterward. |
-| `DELETE` | `/api/users/health-data` | Deletes cycles, symptoms, reminders, and cycle averages but preserves the account. |
+| `DELETE` | `/api/users/health-data` | Deletes cycles, symptoms, reminders, AI messages, and cycle averages but preserves the account. |
 | `DELETE` | `/api/users/account` | Requires password and `{ "confirmation": "DELETE" }`; removes account and associated records. |
 
 Account deletion and health-data deletion are permanent.
@@ -106,6 +106,22 @@ Resource reads are public and curated from external sources:
 
 - `GET /api/resources?search=...&category=...&page=1&limit=20` — returns resources, categories, and pagination.
 - `GET /api/resources/:slug` — returns one resource or `404`.
+
+## AI assistant
+
+All assistant endpoints require authentication. POST and DELETE requests also require a CSRF token. The assistant uses locally configured Ollama models and reviewed documents embedded in MongoDB Atlas; it does not receive cycle or symptom records.
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `GET` | `/api/ai/health` | Reports MongoDB, Ollama model, and knowledge-base status. Vector index availability is checked when searching. |
+| `POST` | `/api/ai/chat` | Requires `{ "message": "..." }`; optional UUID `conversationId` continues a conversation. Returns user and assistant messages with actual retrieved sources. Rate limited. |
+| `GET` | `/api/ai/history?conversationId=<uuid>` | Returns at most the latest 100 messages from a conversation owned by the current user. Without an ID, returns the latest conversation. |
+| `GET` | `/api/ai/conversations` | Lists up to 50 conversations owned by the current user. |
+| `PATCH` | `/api/ai/conversations/:conversationId` | Requires `{ "title": "..." }`; renames only the current user's conversation. |
+| `DELETE` | `/api/ai/conversations/:conversationId` | Deletes the selected user's conversation. |
+| `POST` | `/api/ai/feedback` | Requires `{ "messageId": "<id>", "feedback": "helpful" }` or `not_helpful`; only the owning user can rate their assistant message. |
+
+If reviewed material does not meet the configured vector relevance threshold, chat returns a limitation response without asking the model to invent an answer. Missing or misconfigured Atlas Vector Search indexes and unavailable Ollama services return explicit `503` errors. See the [README setup instructions](../README.md#ai-assistant-and-atlas-vector-search-setup).
 
 ## Health
 

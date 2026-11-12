@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { getApiErrorMessage } from '../../services/api';
 import useReminderNotifications from '../../hooks/useReminderNotifications';
@@ -9,6 +10,9 @@ import Sidebar from './Sidebar';
 function DashboardLayout() {
   const { user, logout } = useAuth();
   const [navigationOpen, setNavigationOpen] = useState(false);
+  const [navigationCollapsed, setNavigationCollapsed] = useState(() => (
+    window.localStorage.getItem('flowcare-sidebar-collapsed') === 'true'
+  ));
   const [logoutBusy, setLogoutBusy] = useState(false);
   const [logoutError, setLogoutError] = useState('');
   const navigate = useNavigate();
@@ -16,6 +20,10 @@ function DashboardLayout() {
   useReminderNotifications(user);
 
   const closeNavigation = useCallback(() => setNavigationOpen(false), []);
+
+  useEffect(() => {
+    window.localStorage.setItem('flowcare-sidebar-collapsed', String(navigationCollapsed));
+  }, [navigationCollapsed]);
 
   async function handleLogout() {
     setLogoutBusy(true);
@@ -31,16 +39,24 @@ function DashboardLayout() {
   }
 
   return (
-    <div className="dashboard-app">
+    <div className={`dashboard-app${navigationCollapsed ? ' sidebar-collapsed' : ''}`}>
       <Sidebar
         open={navigationOpen}
         onClose={closeNavigation}
+        collapsed={navigationCollapsed}
+        onToggleCollapse={() => setNavigationCollapsed((value) => !value)}
+        user={user}
         onLogout={handleLogout}
         logoutBusy={logoutBusy}
         logoutError={logoutError}
       />
       <div className="dashboard-main">
-        <DashboardHeader user={user} onMenuClick={() => setNavigationOpen(true)} />
+        <DashboardHeader
+          user={user}
+          onMenuClick={() => setNavigationOpen(true)}
+          onToggleCollapse={() => setNavigationCollapsed((value) => !value)}
+          collapsed={navigationCollapsed}
+        />
         <div className="dashboard-content"><Outlet /></div>
       </div>
     </div>

@@ -10,6 +10,7 @@ const symptomRoutes = require('./routes/symptomRoutes');
 const reminderRoutes = require('./routes/reminderRoutes');
 const userRoutes = require('./routes/userRoutes');
 const resourceRoutes = require('./routes/resourceRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 const mongoose = require('mongoose');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -35,6 +36,7 @@ app.use('/api/symptoms', symptomRoutes);
 app.use('/api/reminders', reminderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/resources', resourceRoutes);
+app.use('/api/ai', aiRoutes);
 
 app.get('/', (req, res) => {
   res.status(200).json({ success: true, message: 'Welcome to FlowCare API' });

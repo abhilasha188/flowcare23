@@ -5,6 +5,15 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { getApiErrorMessage } from '../../services/api';
 import { changePassword, deleteAccount, deleteHealthData } from '../../services/userService';
 import { useAuth } from '../../hooks/useAuth';
+import SectionTabs from '../../components/common/SectionTabs';
+import useSectionTab from '../../hooks/useSectionTab';
+
+const settingsTabs = [
+  { id: 'profile', label: 'Profile' },
+  { id: 'cycle', label: 'Cycle preferences' },
+  { id: 'notifications', label: 'Notifications' },
+  { id: 'privacy', label: 'Privacy & security' },
+];
 
 function profileFromUser(user) {
   if (!user) return null;
@@ -32,6 +41,7 @@ function profileFromUser(user) {
 }
 
 function Settings() {
+  const [activeTab, setActiveTab] = useSectionTab('section', 'profile', settingsTabs);
   const { user, updateProfile, logout, clearSession } = useAuth();
   const navigate = useNavigate();
   const [today] = useState(() => new Date().toISOString().slice(0, 10));
@@ -146,7 +156,7 @@ function Settings() {
     try {
       const result = await deleteHealthData();
       await updateProfile({ averageCycleLength: null, averagePeriodDuration: null });
-      setNotice(`${result.message} Removed ${result.deleted.cycles} cycles, ${result.deleted.symptoms} symptom entries, and ${result.deleted.reminders} reminders.`);
+      setNotice(`${result.message} Removed ${result.deleted.cycles} cycles, ${result.deleted.symptoms} symptom entries, ${result.deleted.reminders} reminders, and ${result.deleted.aiMessages} AI messages.`);
       setConfirmHealthDelete(false);
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Could not delete health data.'));
@@ -191,8 +201,10 @@ function Settings() {
       </header>
       {error && <div className="form-alert" role="alert">{error}</div>}
       {notice && <div className="form-notice" role="status">{notice}</div>}
+      <SectionTabs label="Settings sections" tabs={settingsTabs} activeTab={activeTab} onChange={setActiveTab} />
 
       <form className="feature-card settings-section" onSubmit={saveProfile}>
+        {activeTab === 'profile' && <>
         <div className="feature-card-heading"><div><span className="section-eyebrow">PROFILE</span><h3><UserRound size={18} /> Personal details</h3></div></div>
         <div className="feature-form-grid">
           <label className="field-label">Full name<input className="plain-input" minLength={2} maxLength={50} required value={profile.fullName} onChange={(event) => updateProfileField('fullName', event.target.value)} /></label>
@@ -200,6 +212,9 @@ function Settings() {
           <label className="field-label">Date of birth <span>(optional)</span><input className="plain-input" type="date" max={today} value={profile.dateOfBirth} onChange={(event) => updateProfileField('dateOfBirth', event.target.value)} /></label>
           {profile.email.trim().toLowerCase() !== user.email && <label className="field-label">Current password to confirm email change<input className="plain-input" type="password" autoComplete="current-password" value={profile.currentPassword} onChange={(event) => updateProfileField('currentPassword', event.target.value)} required /></label>}
         </div>
+        <button className="button button-primary" type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save profile'}</button>
+        </>}
+        {activeTab === 'cycle' && <>
         <div className="settings-subsection">
           <h4>Cycle preferences</h4>
           <p>These are estimates for personalization. Actual period records take precedence.</p>
@@ -210,6 +225,9 @@ function Settings() {
           <label className="settings-checkbox"><input type="checkbox" checked={profile.predictionPreferences.showPhaseEstimate} onChange={(event) => updatePreference('predictionPreferences', 'showPhaseEstimate', event.target.checked)} /> Show estimated cycle phase</label>
           <label className="settings-checkbox"><input type="checkbox" checked={profile.predictionPreferences.showFertileWindow} onChange={(event) => updatePreference('predictionPreferences', 'showFertileWindow', event.target.checked)} /> Show estimated fertile window</label>
         </div>
+        <button className="button button-primary" type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save cycle preferences'}</button>
+        </>}
+        {activeTab === 'notifications' && <>
         <div className="settings-subsection">
           <h4>Notification preferences</h4>
           <label className="settings-checkbox"><input type="checkbox" checked={profile.notificationPreferences.enabled} onChange={(event) => updatePreference('notificationPreferences', 'enabled', event.target.checked)} /> Enable reminder notifications</label>
@@ -221,13 +239,15 @@ function Settings() {
           </div>
           <p className="feature-note">Permission is requested only when you choose the button above. Browser alerts work while FlowCare is open; in-app reminders remain available.</p>
         </div>
-        <button className="button button-primary" type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save profile and preferences'}</button>
+        <button className="button button-primary" type="submit" disabled={loading}>{loading ? 'Saving…' : 'Save notification preferences'}</button>
+        </>}
       </form>
 
+      {activeTab === 'privacy' && <>
       <section className="feature-card settings-section">
         <div className="feature-card-heading"><div><span className="section-eyebrow">PRIVACY</span><h3><ShieldCheck size={18} /> Your data</h3></div></div>
-        <p>Cycle and symptom records are private to your account. You can remove health tracking records without deleting your account.</p>
-        <label className="settings-checkbox disabled-setting"><input type="checkbox" disabled checked={false} readOnly /> AI personalization consent (unavailable until AI features are introduced)</label>
+        <p>Cycle and symptom records are private to your account. You can remove health tracking records and AI conversation history without deleting your account. Personal cycle and symptom records are not sent to the assistant.</p>
+        <label className="settings-checkbox disabled-setting"><input type="checkbox" disabled checked={false} readOnly /> AI personalization consent (disabled; personal health records are not used by the assistant)</label>
         <div className="settings-actions">
           <button className="button button-danger" type="button" onClick={() => setConfirmHealthDelete(true)}><Trash2 size={16} /> Delete health data</button>
           <button className="button button-muted" type="button" onClick={signOut}><LogOut size={16} /> Sign out</button>
@@ -249,7 +269,7 @@ function Settings() {
 
       <section className="feature-card settings-section account-delete-section">
         <div className="feature-card-heading"><div><span className="section-eyebrow">PERMANENT ACTION</span><h3>Delete account</h3></div></div>
-        <p>This permanently deletes your account and its cycle, symptom, and reminder records. Enter your password and type DELETE to confirm.</p>
+        <p>This permanently deletes your account, cycle, symptom, reminder, and AI conversation records. Enter your password and type DELETE to confirm.</p>
         <form className="feature-form" onSubmit={submitAccountDeletion}>
           <div className="feature-form-grid">
             <label className="field-label">Password<input className="plain-input" type="password" autoComplete="current-password" required value={deleteForm.password} onChange={(event) => setDeleteForm((current) => ({ ...current, password: event.target.value }))} /></label>
@@ -258,11 +278,12 @@ function Settings() {
           <button className="button button-danger" type="submit" disabled={accountBusy || deleteForm.confirmation !== 'DELETE'}>{accountBusy ? 'Deleting account…' : 'Permanently delete account'}</button>
         </form>
       </section>
+      </>}
 
       <ConfirmDialog
         open={confirmHealthDelete}
         title="Delete your health tracking data?"
-        description="This removes your cycle, symptom, and reminder records, plus optional cycle averages. Your account will remain active."
+        description="This removes your cycle, symptom, reminder, and AI conversation records, plus optional cycle averages. Your account will remain active."
         confirmLabel="Delete health data"
         busy={deleteBusy}
         onCancel={() => setConfirmHealthDelete(false)}

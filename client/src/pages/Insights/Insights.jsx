@@ -7,12 +7,22 @@ import { Activity, CalendarDays, Clock3, RotateCw, Sparkles, Timer } from 'lucid
 import StatisticsCard from '../../components/dashboard/StatisticsCard';
 import { getApiErrorMessage } from '../../services/api';
 import { getAnalyticsData } from '../../services/analyticsService';
+import SectionTabs from '../../components/common/SectionTabs';
+import useSectionTab from '../../hooks/useSectionTab';
+
+const insightTabs = [
+  { id: 'cycle', label: 'Cycle analytics' },
+  { id: 'symptoms', label: 'Symptoms' },
+  { id: 'mood', label: 'Mood & energy' },
+  { id: 'patterns', label: 'Patterns' },
+];
 
 const palette = ['#d77d9b', '#8f78bc', '#efad87', '#69a58c', '#d2a84c', '#708fc1'];
 
-function ChartPanel({ title, description, children, empty }) {
+function ChartPanel({ title, description, children, empty, group, activeTab }) {
+  if (group !== activeTab) return null;
   return (
-    <section className="chart-card">
+    <section className="chart-card" role="tabpanel">
       <div className="chart-card-heading"><h3>{title}</h3><p>{description}</p></div>
       {empty ? <div className="chart-empty">More logged data is needed to show this chart.</div> : <div className="chart-area">{children}</div>}
     </section>
@@ -20,6 +30,7 @@ function ChartPanel({ title, description, children, empty }) {
 }
 
 function Insights() {
+  const [activeTab, setActiveTab] = useSectionTab('view', 'cycle', insightTabs);
   const [range, setRange] = useState('90d');
   const [retry, setRetry] = useState(0);
   const [result, setResult] = useState({ key: null, data: null, error: '' });
@@ -100,39 +111,41 @@ function Insights() {
         </div>
       </section>
 
+      <SectionTabs label="Insight categories" tabs={insightTabs} activeTab={activeTab} onChange={setActiveTab} />
+
       <div className="insights-grid">
-        <ChartPanel title="Cycle length over time" description="Intervals between recorded period starts." empty={cyclePoints.length === 0}>
+        <ChartPanel group="cycle" activeTab={activeTab} title="Cycle length over time" description="Intervals between recorded period starts." empty={cyclePoints.length === 0}>
           <ResponsiveContainer width="100%" height="100%"><LineChart data={cyclePoints}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="date" /><YAxis unit=" d" /><Tooltip /><Line type="monotone" dataKey="value" name="Cycle length" stroke={palette[0]} strokeWidth={3} dot={{ r: 3 }} /></LineChart></ResponsiveContainer>
         </ChartPanel>
-        <ChartPanel title="Period duration" description="Inclusive days between each recorded start and end." empty={periodPoints.length === 0}>
+        <ChartPanel group="cycle" activeTab={activeTab} title="Period duration" description="Inclusive days between each recorded start and end." empty={periodPoints.length === 0}>
           <ResponsiveContainer width="100%" height="100%"><BarChart data={periodPoints}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="date" /><YAxis unit=" d" /><Tooltip /><Bar dataKey="value" name="Days" fill={palette[1]} radius={[6, 6, 0, 0]} /></BarChart></ResponsiveContainer>
         </ChartPanel>
-        <ChartPanel title="Cycle length variation" description="Difference from the previous displayed cycle." empty={data.cycles.variation.filter((point) => point.differenceFromPrevious != null).length === 0}>
+        <ChartPanel group="cycle" activeTab={activeTab} title="Cycle length variation" description="Difference from the previous displayed cycle." empty={data.cycles.variation.filter((point) => point.differenceFromPrevious != null).length === 0}>
           <ResponsiveContainer width="100%" height="100%"><LineChart data={data.cycles.variation}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="date" /><YAxis unit=" d" /><Tooltip /><Line type="monotone" dataKey="differenceFromPrevious" name="Difference" stroke={palette[2]} strokeWidth={3} /></LineChart></ResponsiveContainer>
         </ChartPanel>
-        <ChartPanel title="Symptom frequency" description="Number of times each symptom was recorded." empty={symptomPoints.length === 0}>
+        <ChartPanel group="symptoms" activeTab={activeTab} title="Symptom frequency" description="Number of times each symptom was recorded." empty={symptomPoints.length === 0}>
           <ResponsiveContainer width="100%" height="100%"><BarChart data={symptomPoints} layout="vertical"><CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="_id" width={105} /><Tooltip /><Bar dataKey="count" name="Entries" fill={palette[0]} radius={[0, 6, 6, 0]} /></BarChart></ResponsiveContainer>
         </ChartPanel>
-        <ChartPanel title="Symptom severity trends" description="Daily average severity for your most frequently logged symptoms." empty={severityByDate.length === 0}>
+        <ChartPanel group="symptoms" activeTab={activeTab} title="Symptom severity trends" description="Daily average severity for your most frequently logged symptoms." empty={severityByDate.length === 0}>
           <ResponsiveContainer width="100%" height="100%"><LineChart data={severityByDate}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="date" /><YAxis domain={[0, 10]} /><Tooltip /><Legend />{severityNames.map((name, index) => <Line key={name} type="monotone" dataKey={name} connectNulls stroke={palette[index % palette.length]} />)}</LineChart></ResponsiveContainer>
         </ChartPanel>
-        <ChartPanel title="Monthly symptom distribution" description="Recorded symptom entries by month." empty={data.symptoms.monthlyDistribution.length === 0}>
+        <ChartPanel group="symptoms" activeTab={activeTab} title="Monthly symptom distribution" description="Recorded symptom entries by month." empty={data.symptoms.monthlyDistribution.length === 0}>
           <ResponsiveContainer width="100%" height="100%"><BarChart data={data.symptoms.monthlyDistribution}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="month" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="count" name="Entries" fill={palette[2]} radius={[6, 6, 0, 0]} /></BarChart></ResponsiveContainer>
         </ChartPanel>
-        <ChartPanel title="Mood distribution" description="Moods you selected in daily entries." empty={moodPoints.length === 0}>
+        <ChartPanel group="mood" activeTab={activeTab} title="Mood distribution" description="Moods you selected in daily entries." empty={moodPoints.length === 0}>
           <ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={moodPoints} dataKey="count" nameKey="_id" innerRadius={55} outerRadius={90} paddingAngle={3}>{moodPoints.map((item, index) => <Cell key={item._id} fill={palette[index % palette.length]} />)}</Pie><Tooltip /><Legend /></PieChart></ResponsiveContainer>
         </ChartPanel>
-        <ChartPanel title="Energy and sleep" description="Daily self-ratings on a 1–10 scale." empty={!data.symptoms.wellnessTrends.some((point) => point.energyLevel != null || point.sleepQuality != null)}>
+        <ChartPanel group="mood" activeTab={activeTab} title="Energy and sleep" description="Daily self-ratings on a 1–10 scale." empty={!data.symptoms.wellnessTrends.some((point) => point.energyLevel != null || point.sleepQuality != null)}>
           <ResponsiveContainer width="100%" height="100%"><LineChart data={data.symptoms.wellnessTrends}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="date" /><YAxis domain={[0, 10]} /><Tooltip /><Legend /><Line type="monotone" dataKey="energyLevel" name="Energy" connectNulls stroke={palette[3]} /><Line type="monotone" dataKey="sleepQuality" name="Sleep quality" connectNulls stroke={palette[4]} /></LineChart></ResponsiveContainer>
         </ChartPanel>
       </div>
 
-      <section className="feature-card patterns-card">
+      {activeTab === 'patterns' && <section className="feature-card patterns-card tab-panel" role="tabpanel">
         <div className="feature-card-heading"><div><span className="section-eyebrow">PERSONAL OBSERVATIONS</span><h3>Cycle-phase patterns</h3></div></div>
         <p>{data.patterns.message}</p>
         {data.patterns.observations.length > 0 && <div className="pattern-list">{data.patterns.observations.map((observation) => <article className="pattern-item" key={observation.phase}><h4>{observation.phase.replaceAll('_', ' ')}</h4><p>Based on {observation.recordedDays} logged days.</p><span>Symptoms: {observation.commonSymptoms.map((item) => `${item.name} (${item.count})`).join(', ') || 'No symptoms logged'}</span><span>Moods: {observation.commonMoods.map((item) => `${item.name} (${item.count})`).join(', ') || 'No moods logged'}</span></article>)}</div>}
         <small>These patterns are descriptive only; they do not imply that a cycle phase caused a symptom or mood.</small>
-      </section>
+      </section>}
       <p className="dashboard-disclaimer">Cycle dates and phases are estimates, not clinical findings or medical advice.</p>
     </div>
   );

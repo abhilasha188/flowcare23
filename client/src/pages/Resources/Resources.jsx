@@ -3,11 +3,18 @@ import { BookOpen, ExternalLink, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getApiErrorMessage } from '../../services/api';
 import { getResources } from '../../services/resourceService';
+import SectionTabs from '../../components/common/SectionTabs';
+import useSectionTab from '../../hooks/useSectionTab';
 
 function Resources() {
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('');
   const [result, setResult] = useState({ key: null, data: null, error: '' });
+  const resourceTabs = [
+    { id: 'all', label: 'All resources' },
+    ...(result.data?.categories || []).map((item) => ({ id: item, label: item })),
+  ];
+  const [activeTab, setActiveTab] = useSectionTab('topic', 'all', resourceTabs);
+  const category = activeTab === 'all' ? '' : activeTab;
   const requestKey = JSON.stringify([search, category]);
   const loading = result.key !== requestKey;
   const data = result.data || { resources: [], categories: [] };
@@ -39,12 +46,8 @@ function Resources() {
       </header>
       <div className="resource-filters">
         <label className="search-input-wrap"><Search size={17} /><input className="plain-input" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search resources" aria-label="Search resources" /></label>
-        <label className="sr-only" htmlFor="resource-category">Filter by category</label>
-        <select id="resource-category" className="plain-input" value={category} onChange={(event) => setCategory(event.target.value)}>
-          <option value="">All topics</option>
-          {data.categories.map((item) => <option value={item} key={item}>{item}</option>)}
-        </select>
       </div>
+      <SectionTabs label="Resource topics" tabs={resourceTabs} activeTab={activeTab} onChange={setActiveTab} />
       {error && <div className="form-alert" role="alert">{error}</div>}
       {loading && <div className="feature-loading" role="status">Loading resources…</div>}
       {!loading && !error && data.resources.length === 0 && <div className="feature-empty"><BookOpen size={23} /><h3>No resources match</h3><p>Try a different search or category.</p></div>}
