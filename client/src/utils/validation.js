@@ -1,13 +1,5 @@
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const namePattern = /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u;
-const passwordRules = {
-  length: (value) => value.length >= 8 && value.length <= 64,
-  uppercase: (value) => /[A-Z]/.test(value),
-  lowercase: (value) => /[a-z]/.test(value),
-  number: (value) => /\d/.test(value),
-  special: (value) => /[^A-Za-z0-9]/.test(value),
-};
-
 export function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
@@ -29,11 +21,7 @@ export function validateEmail(value) {
 
 export function validatePassword(value) {
   if (!value) return 'Password is required.';
-  if (!passwordRules.length(value)) return 'Use 8 to 64 characters.';
-  if (!passwordRules.uppercase(value)) return 'Add at least one uppercase letter.';
-  if (!passwordRules.lowercase(value)) return 'Add at least one lowercase letter.';
-  if (!passwordRules.number(value)) return 'Add at least one number.';
-  if (!passwordRules.special(value)) return 'Add at least one special character.';
+  if (value.length < 6 || value.length > 12) return 'Use 6 to 12 characters.';
   return '';
 }
 

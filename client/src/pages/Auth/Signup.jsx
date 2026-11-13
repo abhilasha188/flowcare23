@@ -157,7 +157,10 @@ function Signup() {
           onChange={handleChange}
           onBlur={handleBlur}
           error={errors.password}
+          hint="Use any combination of characters, 6 to 12 characters long."
           autoComplete="new-password"
+          minLength={6}
+          maxLength={12}
         />
         <PasswordInput
           id="confirmPassword"
@@ -167,6 +170,8 @@ function Signup() {
           onBlur={handleBlur}
           error={errors.confirmPassword}
           autoComplete="new-password"
+          minLength={6}
+          maxLength={12}
         />
 
         <div className="optional-heading">

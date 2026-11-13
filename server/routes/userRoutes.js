@@ -69,7 +69,7 @@ router.post(
   csrfProtection,
   [
     body('currentPassword').isString().isLength({ min: 1, max: 64 }).withMessage('Enter your current password.'),
-    body('newPassword').isString().bail().custom(isValidPassword).withMessage('Use 8–64 characters with uppercase, lowercase, a number, and a special character.'),
+    body('newPassword').isString().bail().custom(isValidPassword).withMessage('Use 6 to 12 characters.'),
     body('confirmNewPassword').isString().isLength({ min: 1, max: 64 }).withMessage('Confirm your new password.'),
   ],
   validateRequest,

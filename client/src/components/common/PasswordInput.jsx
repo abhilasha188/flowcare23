@@ -10,11 +10,14 @@ function PasswordInput({
   onBlur,
   error,
   autoComplete,
+  hint,
+  minLength,
+  maxLength,
 }) {
   const [visible, setVisible] = useState(false);
 
   return (
-    <FormField id={id} label={label} error={error}>
+    <FormField id={id} label={label} error={error} hint={hint}>
       {(messageId) => (
         <div className="input-wrap">
           <LockKeyhole className="input-icon" aria-hidden="true" size={18} />
@@ -26,6 +29,8 @@ function PasswordInput({
             onChange={onChange}
             onBlur={onBlur}
             autoComplete={autoComplete}
+            minLength={minLength}
+            maxLength={maxLength}
             aria-invalid={Boolean(error)}
             aria-describedby={messageId}
           />

@@ -1,7 +1,7 @@
 const { body } = require('express-validator');
 
 const namePattern = /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u;
-const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,64}$/;
+const passwordPattern = /^[\s\S]{6,12}$/;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function isValidFullName(value) {
@@ -52,7 +52,7 @@ const registerValidators = [
     .isString().withMessage('Password is required.')
     .bail()
     .custom(isValidPassword)
-    .withMessage('Use 8–64 characters with uppercase, lowercase, a number, and a special character.'),
+    .withMessage('Use 6 to 12 characters.'),
   body('dateOfBirth')
     .optional({ checkFalsy: true })
     .isString().withMessage('Enter a valid date of birth.')
@@ -74,6 +74,7 @@ const registerValidators = [
     .withMessage('You must accept the Terms and Privacy Policy.'),
 ];
 
+// Keep sign-in compatible with existing passwords; only new passwords use the shorter limit.
 const loginValidators = [
   body('email')
     .isString().withMessage('Email address is required.')

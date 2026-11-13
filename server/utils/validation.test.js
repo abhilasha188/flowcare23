@@ -1,11 +1,13 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
+const { validationResult } = require('express-validator');
 const {
   isValidDateOfBirth,
   isValidEmail,
   isValidFullName,
   isValidOptionalInteger,
   isValidPassword,
+  loginValidators,
 } = require('./validation');
 
 test('validates names and normalized email values', () => {
@@ -15,10 +17,26 @@ test('validates names and normalized email values', () => {
   assert.equal(isValidEmail('not-an-email'), false);
 });
 
-test('enforces password strength and size limits', () => {
-  assert.equal(isValidPassword('Example@123'), true);
-  assert.equal(isValidPassword('example@123'), false);
-  assert.equal(isValidPassword(`A1@${'a'.repeat(62)}`), false);
+test('accepts any password characters within 6 to 12 characters', () => {
+  assert.equal(isValidPassword('abc123'), true);
+  assert.equal(isValidPassword('123456'), true);
+  assert.equal(isValidPassword('ABCDEF'), true);
+  assert.equal(isValidPassword('!@#$%^'), true);
+  assert.equal(isValidPassword('123456789012'), true);
+  assert.equal(isValidPassword('abc12'), false);
+  assert.equal(isValidPassword('1234567890123'), false);
+  assert.equal(isValidPassword(''), false);
+});
+
+test('allows existing longer passwords through sign-in validation', async () => {
+  const request = {
+    body: {
+      email: 'person@example.com',
+      password: 'PreviouslyChosenPassword123!',
+    },
+  };
+  await Promise.all(loginValidators.map((validator) => validator.run(request)));
+  assert.equal(validationResult(request).isEmpty(), true);
 });
 
 test('validates optional integer ranges and date values', () => {

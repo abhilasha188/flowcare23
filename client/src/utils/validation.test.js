@@ -7,6 +7,7 @@ import {
   validateDateOfBirth,
   validateEmail,
   validateFullName,
+  validateLoginForm,
   validatePassword,
   validatePeriodDuration,
   validateSignupForm,
@@ -24,13 +25,20 @@ test('accepts ordinary names and rejects blank or invalid names', () => {
   assert.notEqual(validateFullName('Ana123'), '');
 });
 
-test('enforces every password strength requirement and confirmation', () => {
-  assert.equal(validatePassword('Example@123'), '');
-  assert.notEqual(validatePassword('example@123'), '');
-  assert.notEqual(validatePassword('Example123'), '');
-  assert.notEqual(validatePassword('A1@shrt'), '');
-  assert.equal(validateConfirmPassword('Example@123', 'Example@123'), '');
-  assert.notEqual(validateConfirmPassword('Example@124', 'Example@123'), '');
+test('accepts any password characters within 6 to 12 characters', () => {
+  assert.equal(validatePassword('abc123'), '');
+  assert.equal(validatePassword('123456'), '');
+  assert.equal(validatePassword('ABCDEF'), '');
+  assert.equal(validatePassword('!@#$%^'), '');
+  assert.equal(validatePassword('123456789012'), '');
+  assert.notEqual(validatePassword('abc12'), '');
+  assert.notEqual(validatePassword('1234567890123'), '');
+  assert.equal(validateConfirmPassword('abc123', 'abc123'), '');
+  assert.notEqual(validateConfirmPassword('abc124', 'abc123'), '');
+});
+
+test('allows existing longer passwords at sign-in', () => {
+  assert.deepEqual(validateLoginForm({ email: 'user@example.com', password: 'PreviouslyChosenPassword123!' }), {});
 });
 
 test('validates optional birth date and cycle values at their boundaries', () => {
@@ -52,8 +60,8 @@ test('requires explicit terms acceptance at signup', () => {
   const errors = validateSignupForm({
     fullName: 'Example User',
     email: 'example@example.com',
-    password: 'Example@123',
-    confirmPassword: 'Example@123',
+    password: 'abc123',
+    confirmPassword: 'abc123',
     dateOfBirth: '',
     averageCycleLength: '',
     averagePeriodDuration: '',

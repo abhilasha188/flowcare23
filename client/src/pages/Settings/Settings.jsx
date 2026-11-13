@@ -269,10 +269,10 @@ function Settings() {
         <form className="feature-form" onSubmit={saveNewPassword}>
           <div className="feature-form-grid">
             <label className="field-label">Current password<input className="plain-input" type="password" autoComplete="current-password" maxLength={64} required value={passwordForm.currentPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))} /></label>
-            <label className="field-label">New password<input className="plain-input" type="password" autoComplete="new-password" minLength={8} maxLength={64} required value={passwordForm.newPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))} /></label>
-            <label className="field-label">Confirm new password<input className="plain-input" type="password" autoComplete="new-password" maxLength={64} required value={passwordForm.confirmNewPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, confirmNewPassword: event.target.value }))} /></label>
+            <label className="field-label">New password<input className="plain-input" type="password" autoComplete="new-password" minLength={6} maxLength={12} required value={passwordForm.newPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))} /></label>
+            <label className="field-label">Confirm new password<input className="plain-input" type="password" autoComplete="new-password" minLength={6} maxLength={12} required value={passwordForm.confirmNewPassword} onChange={(event) => setPasswordForm((current) => ({ ...current, confirmNewPassword: event.target.value }))} /></label>
           </div>
-          <p className="feature-note">Use 8–64 characters with uppercase and lowercase letters, a number, and a special character. Other sessions are invalidated after a password change.</p>
+          <p className="feature-note">Use any combination of characters, 6 to 12 characters long. Other sessions are invalidated after a password change.</p>
           <button className="button button-primary" type="submit" disabled={passwordBusy}>{passwordBusy ? 'Updating…' : 'Change password'}</button>
         </form>
       </section>

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 const namePattern = /^[\p{L}\p{M}]+(?:[ '\u2019-][\p{L}\p{M}]+)*$/u;
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,64}$/;
+const passwordPattern = /^[\s\S]{6,12}$/;
 const notificationPreferencesSchema = new mongoose.Schema(
   {
     enabled: { type: Boolean, default: false },
