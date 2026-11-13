@@ -545,15 +545,6 @@
   animation: flowcare-message-enter 260ms var(--flow-ease-enter) both;
 }
 
-.ai-typing::after {
-  width: 18px;
-  height: 6px;
-  border-radius: 999px;
-  background: radial-gradient(circle, currentColor 1.5px, transparent 2px) 0 50% / 6px 6px repeat-x;
-  animation: flowcare-typing 900ms ease-in-out infinite;
-  content: '';
-}
-
 .dashboard-header {
   transition: box-shadow var(--flow-motion-base) ease, background-color var(--flow-motion-base) ease;
 }
@@ -676,11 +667,6 @@
 @keyframes flowcare-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
-}
-
-@keyframes flowcare-typing {
-  0%, 100% { opacity: 0.35; }
-  50% { opacity: 0.9; }
 }
 
 @media (prefers-reduced-motion: reduce) {

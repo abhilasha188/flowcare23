@@ -70,6 +70,7 @@ function AiAssistant() {
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
+  const [pendingQuestion, setPendingQuestion] = useState('');
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadedConversationId, setLoadedConversationId] = useState(null);
   const [sending, setSending] = useState(false);
@@ -145,7 +146,7 @@ function AiAssistant() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages, sending]);
+  }, [messages, pendingQuestion, sending]);
 
   async function submitQuestion(event, question = input) {
     event?.preventDefault();
@@ -155,12 +156,13 @@ function AiAssistant() {
     setError('');
     setCopyError('');
     setRetryQuestion('');
+    setPendingQuestion(text);
+    setInput('');
     setSending(true);
     try {
       const result = await sendAssistantMessage(text, conversationId);
       setConversationId(result.conversationId);
       setMessages((current) => [...current, ...result.messages]);
-      setInput('');
       try {
         await refreshConversations();
       } catch (requestError) {
@@ -172,6 +174,7 @@ function AiAssistant() {
       setError(getApiErrorMessage(requestError, 'The assistant could not respond. Please try again.'));
     } finally {
       setSending(false);
+      setPendingQuestion('');
     }
   }
 
@@ -364,7 +367,7 @@ function AiAssistant() {
           <div className="ai-message-list" aria-live="polite">
             {historyLoading
               ? <p className="ai-history-empty">Loading this conversation…</p>
-              : messages.length === 0
+              : messages.length === 0 && !sending
                 ? (
                   <div className="ai-empty-state">
                     <span className="ai-empty-icon"><Bot size={23} /></span>
@@ -378,50 +381,71 @@ function AiAssistant() {
                     </div>
                   </div>
                 )
-                : messages.map((message) => (
-                  <article className={`ai-message ai-message-${message.role}`} key={message.id}>
-                    <span className="ai-avatar" aria-hidden="true">
-                      {message.role === 'assistant' ? <Bot size={17} /> : <UserRound size={17} />}
-                    </span>
-                    <div className="ai-message-content">
-                      <div className="ai-message-bubble">{renderMessage(message.message)}</div>
-                      {message.role === 'assistant' && message.sources?.length > 0 && (
-                        <details className="ai-sources">
-                          <summary>Reviewed sources <span>{message.sources.length}</span></summary>
-                          {message.sources.map((source) => <a key={`${source.url}-${source.title}`} href={source.url} target="_blank" rel="noreferrer">{source.title} <span>— {source.organization}</span></a>)}
-                        </details>
-                      )}
-                      {message.role === 'assistant' && (
-                        <div className="ai-message-toolbar">
-                        <div className="ai-feedback" aria-label="Rate this answer">
-                          <span className="sr-only">Was this helpful?</span>
-                          <button
-                            type="button"
-                            aria-label="Helpful"
-                            aria-pressed={message.feedback === 'helpful'}
-                            disabled={feedbackBusy === message.id}
-                            onClick={() => giveFeedback(message.id, 'helpful')}
-                          ><ThumbsUp size={15} /></button>
-                          <button
-                            type="button"
-                            aria-label="Not helpful"
-                            aria-pressed={message.feedback === 'not_helpful'}
-                            disabled={feedbackBusy === message.id}
-                            onClick={() => giveFeedback(message.id, 'not_helpful')}
-                          ><ThumbsDown size={15} /></button>
+                : (
+                  <>
+                    {messages.map((message) => (
+                      <article className={`ai-message ai-message-${message.role}`} key={message.id}>
+                        <span className="ai-avatar" aria-hidden="true">
+                          {message.role === 'assistant' ? <Bot size={17} /> : <UserRound size={17} />}
+                        </span>
+                        <div className="ai-message-content">
+                          <div className="ai-message-bubble">{renderMessage(message.message)}</div>
+                          {message.role === 'assistant' && message.sources?.length > 0 && (
+                            <details className="ai-sources">
+                              <summary>Reviewed sources <span>{message.sources.length}</span></summary>
+                              {message.sources.map((source) => <a key={`${source.url}-${source.title}`} href={source.url} target="_blank" rel="noreferrer">{source.title} <span>— {source.organization}</span></a>)}
+                            </details>
+                          )}
+                          {message.role === 'assistant' && (
+                            <div className="ai-message-toolbar">
+                              <div className="ai-feedback" aria-label="Rate this answer">
+                                <span className="sr-only">Was this helpful?</span>
+                                <button
+                                  type="button"
+                                  aria-label="Helpful"
+                                  aria-pressed={message.feedback === 'helpful'}
+                                  disabled={feedbackBusy === message.id}
+                                  onClick={() => giveFeedback(message.id, 'helpful')}
+                                ><ThumbsUp size={15} /></button>
+                                <button
+                                  type="button"
+                                  aria-label="Not helpful"
+                                  aria-pressed={message.feedback === 'not_helpful'}
+                                  disabled={feedbackBusy === message.id}
+                                  onClick={() => giveFeedback(message.id, 'not_helpful')}
+                                ><ThumbsDown size={15} /></button>
+                              </div>
+                              <button className="ai-copy-button" type="button" onClick={() => copyMessage(message)} aria-label="Copy response">
+                                {copiedMessageId === message.id ? <Check size={14} /> : <Clipboard size={14} />}
+                                <span className="sr-only">{copiedMessageId === message.id ? 'Copied' : 'Copy'}</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        <button className="ai-copy-button" type="button" onClick={() => copyMessage(message)} aria-label="Copy response">
-                          {copiedMessageId === message.id ? <Check size={14} /> : <Clipboard size={14} />}
-                          <span className="sr-only">{copiedMessageId === message.id ? 'Copied' : 'Copy'}</span>
-                        </button>
+                      </article>
+                    ))}
+                    {sending && (
+                      <>
+                        <article className="ai-message ai-message-user ai-pending-user">
+                          <span className="ai-avatar" aria-hidden="true"><UserRound size={17} /></span>
+                          <div className="ai-message-content">
+                            <div className="ai-message-bubble">{pendingQuestion}</div>
+                          </div>
+                        </article>
+                        <div className="ai-message ai-message-assistant ai-response-pending" role="status">
+                          <span className="ai-avatar" aria-hidden="true"><Bot size={17} /></span>
+                          <div className="ai-message-content">
+                            <div className="ai-message-bubble ai-typing-bubble">
+                              <span className="ai-typing-label">Thinking</span>
+                              <span className="ai-typing-dots" aria-hidden="true"><i /><i /><i /></span>
+                            </div>
+                            <span className="ai-typing-caption">Finding reviewed information</span>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  </article>
-                ))}
-            {sending && (
-              <div className="ai-typing" role="status"><LoaderCircle size={17} className="ai-spinner" /> Finding reviewed information…</div>
-            )}
+                      </>
+                    )}
+                  </>
+                )}
             <div ref={bottomRef} />
           </div>
 
