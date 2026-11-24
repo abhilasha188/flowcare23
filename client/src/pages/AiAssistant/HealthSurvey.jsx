@@ -102,7 +102,16 @@ function downloadPdf(profile, demo) {
   add('Week 1: begin daily symptom and mood check-ins. Week 2: record sleep and hydration consistently. Week 3: try a regular, gentle movement routine. Week 4: review patterns and your wellness priorities.');
   add('Important health considerations', 14, true);
   add('This report is educational and is not a medical diagnosis. Seek medical care for severe or sudden pain, very heavy bleeding, fainting, pregnancy concerns, fever, or symptoms that concern you.');
-  doc.save(demo ? 'FlowCare-Sample-Menstrual-Wellness-Blueprint.pdf' : 'FlowCare-Menstrual-Wellness-Blueprint.pdf');
+  const filename = demo ? 'FlowCare-Sample-Menstrual-Wellness-Blueprint.pdf' : 'FlowCare-Menstrual-Wellness-Blueprint.pdf';
+  const blob = doc.output('blob');
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function HealthSurvey() {
