@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, Download, FileHeart, RotateCcw, ShieldChe
 import { jsPDF } from 'jspdf';
 import { useAuth } from '../../hooks/useAuth';
 import { createCycle } from '../../services/cycleService';
+import { getSymptoms, saveSymptom, updateSymptom } from '../../services/symptomService';
 import { getApiErrorMessage } from '../../services/api';
 import { generateWellnessReport } from '../../services/aiService';
 
@@ -56,6 +57,45 @@ function readSaved() {
   } catch {
     return null;
   }
+}
+
+function mapSurveySymptoms(profile) {
+  const nameMap = {
+    'Abdominal cramps': 'Cramps',
+    'Headaches': 'Headache',
+    'Back pain': 'Back pain',
+    'Breast tenderness': 'Breast tenderness',
+    'Food cravings': 'Food cravings',
+  };
+  const names = (profile.physicalSymptoms || [])
+    .filter((name) => name !== 'No noticeable symptoms')
+    .map((name) => nameMap[name] || name)
+    .filter((name) => name !== 'Other');
+  if (profile.physicalSymptomsOther?.trim()) names.push(profile.physicalSymptomsOther.trim());
+  return [...new Set(names)].slice(0, 20).map((name) => ({
+    name,
+    severity: 5,
+    description: 'Added from the My Wellness Survey.',
+  }));
+}
+
+function mapSurveyMood(profile) {
+  const moods = profile.moodSymptoms || [];
+  if (moods.includes('Irritability')) return 'irritated';
+  if (moods.includes('Anxiety')) return 'anxious';
+  if (moods.includes('Sadness')) return 'sad';
+  if (moods.includes('Feeling overwhelmed')) return 'stressed';
+  if (moods.includes('Low motivation')) return 'low';
+  if (moods.includes('Mood swings') || moods.includes('Increased sensitivity')) return 'emotional';
+  return moods.includes('No noticeable changes') ? null : null;
+}
+
+function mapSurveySleep(profile) {
+  if (!profile.sleepDuration) return null;
+  if (profile.sleepDuration.includes('Less than 5')) return 4;
+  if (profile.sleepDuration === '5–6 hours') return 5;
+  if (profile.sleepDuration === '7–8 hours') return 8;
+  return 9;
 }
 
 function downloadPdf(profile, demo, aiReport) {
@@ -243,6 +283,44 @@ function HealthSurvey() {
             flowIntensity: answers.menstrualFlow === 'Heavy' || answers.menstrualFlow === 'Very heavy' ? 'heavy' : answers.menstrualFlow === 'Light' || answers.menstrualFlow === 'Very light' ? 'light' : answers.menstrualFlow ? 'medium' : null,
             notes: 'Initial period date from My Wellness Survey.',
           }).catch(() => undefined);
+        }
+
+        const surveySymptoms = mapSurveySymptoms(answers);
+        const surveyMood = mapSurveyMood(answers);
+        const surveySleepQuality = mapSurveySleep(answers);
+        if (surveySymptoms.length || surveyMood || surveySleepQuality) {
+          const existingResult = await getSymptoms({ from: today, to: today, limit: 1 });
+          const existing = existingResult.entries?.[0];
+          const existingSymptoms = existing?.symptoms || [];
+          const mergedSymptoms = [...existingSymptoms];
+          for (const surveySymptom of surveySymptoms) {
+            const index = mergedSymptoms.findIndex((item) => item.name.toLowerCase() === surveySymptom.name.toLowerCase());
+            if (index >= 0) {
+              mergedSymptoms[index] = {
+                ...mergedSymptoms[index],
+                description: mergedSymptoms[index].description || surveySymptom.description,
+              };
+            } else {
+              mergedSymptoms.push(surveySymptom);
+            }
+          }
+          const payload = {
+            date: today,
+            symptoms: mergedSymptoms,
+            mood: surveyMood || existing?.mood || null,
+            energyLevel: existing?.energyLevel ?? null,
+            sleepQuality: surveySleepQuality || existing?.sleepQuality || null,
+            flowIntensity: existing?.flowIntensity || (
+              answers.menstrualFlow === 'Heavy' || answers.menstrualFlow === 'Very heavy'
+                ? 'heavy'
+                : answers.menstrualFlow === 'Light' || answers.menstrualFlow === 'Very light'
+                  ? 'light'
+                  : answers.menstrualFlow ? 'medium' : null
+            ),
+            notes: existing?.notes || 'Survey preferences saved from My Wellness Survey.',
+          };
+          if (existing?._id) await updateSymptom(existing._id, payload);
+          else await saveSymptom(payload);
         }
       }
       try {
