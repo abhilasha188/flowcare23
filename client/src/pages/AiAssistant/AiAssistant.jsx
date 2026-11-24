@@ -19,6 +19,8 @@ import {
   X,
 } from 'lucide-react';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import SectionTabs from '../../components/common/SectionTabs';
+import useSectionTab from '../../hooks/useSectionTab';
 import { getApiErrorMessage } from '../../services/api';
 import {
   deleteConversation,
@@ -29,6 +31,12 @@ import {
   sendAssistantMessage,
   submitAssistantFeedback,
 } from '../../services/aiService';
+import HealthSurvey from './HealthSurvey';
+
+const assistantTabs = [
+  { id: 'survey', label: 'My wellness survey' },
+  { id: 'chat', label: 'AI assistant chat' },
+];
 
 const suggestedQuestions = [
   'Why can my cycle length vary?',
@@ -66,6 +74,7 @@ function renderMessage(message) {
 }
 
 function AiAssistant() {
+  const [activeTab, setActiveTab] = useSectionTab('view', 'survey', assistantTabs);
   const [conversations, setConversations] = useState([]);
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -264,7 +273,9 @@ function AiAssistant() {
           <p>Thoughtful, reviewed information for your wellbeing.</p>
         </div>
       </header>
+      <SectionTabs label="AI assistant sections" tabs={assistantTabs} activeTab={activeTab} onChange={setActiveTab} />
 
+      {activeTab === 'survey' ? <HealthSurvey /> : <>
       <div className="ai-privacy-note" role="note">
         <ShieldCheck size={18} />
         <span>Cycle and symptom records aren’t attached. Questions and relevant excerpts go to Google Gemini.</span>
@@ -493,6 +504,7 @@ function AiAssistant() {
         onCancel={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
       />
+      </>}
     </div>
   );
 }
