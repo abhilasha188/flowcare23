@@ -43,3 +43,8 @@ export async function submitAssistantFeedback(messageId, feedback) {
   const { data } = await api.post('/ai/feedback', { messageId, feedback });
   return data;
 }
+
+export async function generateWellnessReport(profile, demo = false) {
+  const { data } = await api.post('/ai/wellness-report', { profile, demo }, { timeout: 200000 });
+  return data;
+}

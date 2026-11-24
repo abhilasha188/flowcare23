@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import { useAuth } from '../../hooks/useAuth';
 import { createCycle } from '../../services/cycleService';
 import { getApiErrorMessage } from '../../services/api';
+import { generateWellnessReport } from '../../services/aiService';
 
 const STORAGE_KEY = 'flowcare-health-survey-v1';
 
@@ -57,51 +58,105 @@ function readSaved() {
   }
 }
 
-function downloadPdf(profile, demo) {
+function downloadPdf(profile, demo, aiReport) {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 48;
   let y = 64;
-  const add = (text, size = 11, bold = false) => {
-    doc.setFont('helvetica', bold ? 'bold' : 'normal');
-    doc.setFontSize(size);
-    const lines = doc.splitTextToSize(String(text), pageWidth - 96);
-    if (y + lines.length * (size * 1.35) > 790) {
+  const report = aiReport || {};
+  const ensureSpace = (height) => {
+    if (y + height > pageHeight - 54) {
       doc.addPage();
-      y = 64;
+      y = 58;
+      doc.setFillColor(255, 250, 252);
+      doc.rect(0, 0, pageWidth, 22, 'F');
     }
-    doc.text(lines, 48, y);
-    y += lines.length * (size * 1.35) + 8;
   };
-  doc.setFillColor(248, 240, 243);
-  doc.rect(0, 0, pageWidth, 115, 'F');
-  doc.setTextColor(95, 63, 82);
+  const paragraph = (text, size = 10.5, color = [78, 68, 76]) => {
+    if (!text) return;
+    doc.setTextColor(...color);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(size);
+    const lines = doc.splitTextToSize(String(text), pageWidth - margin * 2);
+    ensureSpace(lines.length * (size * 1.42) + 8);
+    doc.text(lines, margin, y);
+    y += lines.length * (size * 1.42) + 10;
+  };
+  const heading = (text, size = 15) => {
+    ensureSpace(size + 18);
+    doc.setTextColor(93, 66, 84);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(size);
+    doc.text(text, margin, y);
+    y += size + 12;
+  };
+  const bulletSection = (title, items) => {
+    if (!Array.isArray(items) || !items.length) return;
+    heading(title);
+    items.filter(Boolean).forEach((item) => {
+      ensureSpace(38);
+      doc.setFillColor(242, 222, 230);
+      doc.circle(margin + 4, y - 3, 2.2, 'F');
+      doc.setTextColor(78, 68, 76);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10.5);
+      const lines = doc.splitTextToSize(String(item), pageWidth - margin * 2 - 18);
+      doc.text(lines, margin + 16, y);
+      y += lines.length * 15 + 8;
+    });
+  };
+
+  doc.setFillColor(249, 238, 242);
+  doc.rect(0, 0, pageWidth, 150, 'F');
+  doc.setTextColor(93, 66, 84);
+  doc.setFont('times', 'bold');
+  doc.setFontSize(25);
+  const titleLines = doc.splitTextToSize('MY MENSTRUAL HEALTH\n& WELLNESS BLUEPRINT', pageWidth - margin * 2);
+  doc.text(titleLines, margin, 62);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.text('MY MENSTRUAL HEALTH & WELLNESS BLUEPRINT', 48, 64);
-  doc.setFontSize(10);
-  doc.setTextColor(115, 103, 112);
-  doc.text(demo ? 'SAMPLE DEMO REPORT · Illustrative information only' : 'Personal wellness guide', 48, 88);
-  y = 145;
-  doc.setTextColor(58, 50, 58);
-  add(`Generated ${new Date().toLocaleDateString()}`, 10, true);
-  add('Your menstrual health profile');
-  add(`Age: ${profile.age || 'Not provided'} | Last period: ${profile.lastPeriodDate || 'Not sure'} | Cycle: ${profile.averageCycleLength || 'Not provided'} | Period duration: ${profile.periodDuration || 'Not provided'}`);
-  add(`Regularity: ${profile.cycleRegularity || 'Not provided'} | Flow: ${profile.menstrualFlow || 'Not provided'}`);
-  add('Reported symptoms', 14, true);
-  add(profile.physicalSymptoms?.length ? profile.physicalSymptoms.join(', ') : 'No symptoms reported');
-  add('Mood and emotional wellness', 14, true);
-  add(profile.moodSymptoms?.length ? profile.moodSymptoms.join(', ') : 'No mood changes reported');
-  add('Lifestyle', 14, true);
-  add(`Sleep: ${profile.sleepDuration || 'Not provided'} | Activity: ${profile.activityLevel || 'Not provided'} | Stress: ${profile.stressLevel || 'Not provided'}`);
-  add(`Diet: ${profile.dietType || 'Not provided'} | Water: ${profile.waterIntake || 'Not provided'}`);
-  add('Personal wellness priorities', 14, true);
-  add(profile.wellnessGoals?.length ? profile.wellnessGoals.join(', ') : 'No goals selected');
-  add('Practical next steps', 14, true);
-  add('Track symptom timing and severity, keep a consistent sleep routine, stay hydrated, and use gentle movement when comfortable.');
-  add('30-day wellness plan', 14, true);
-  add('Week 1: begin daily symptom and mood check-ins. Week 2: record sleep and hydration consistently. Week 3: try a regular, gentle movement routine. Week 4: review patterns and your wellness priorities.');
-  add('Important health considerations', 14, true);
-  add('This report is educational and is not a medical diagnosis. Seek medical care for severe or sudden pain, very heavy bleeding, fainting, pregnancy concerns, fever, or symptoms that concern you.');
+  doc.setFontSize(9);
+  doc.setTextColor(132, 103, 119);
+  doc.text(demo ? 'SAMPLE DEMO REPORT  •  ILLUSTRATIVE INFORMATION ONLY' : 'PERSONAL WELLNESS GUIDE', margin, 124);
+  y = 182;
+  doc.setTextColor(112, 101, 109);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text(`Generated ${new Date().toLocaleDateString()}`, margin, y);
+  y += 28;
+
+  heading(report.profileSummary ? 'A personal overview' : 'Your menstrual health profile');
+  paragraph(report.profileSummary || 'A personalized overview based on the details you chose to share. Skip or unanswered details are not inferred.');
+
+  heading('Cycle characteristics');
+  paragraph(report.cycleOverview || `Cycle: ${profile.averageCycleLength || 'Not provided'} | Period duration: ${profile.periodDuration || 'Not provided'} | Regularity: ${profile.cycleRegularity || 'Not provided'} | Flow: ${profile.menstrualFlow || 'Not provided'}`);
+
+  heading('What you reported');
+  paragraph(`Physical symptoms: ${profile.physicalSymptoms?.length ? profile.physicalSymptoms.join(', ') : 'No symptoms reported'}`);
+  paragraph(`Mood preferences: ${profile.moodSymptoms?.length ? profile.moodSymptoms.join(', ') : 'No mood changes reported'}`);
+  paragraph(`Lifestyle: sleep ${profile.sleepDuration || 'not provided'}, activity ${profile.activityLevel || 'not provided'}, stress ${profile.stressLevel || 'not provided'}`);
+  paragraph(`Nutrition: ${profile.dietType || 'diet not provided'}, water intake ${profile.waterIntake || 'not provided'}`);
+
+  bulletSection('Wellness priorities', report.priorities?.length ? report.priorities : profile.wellnessGoals);
+  bulletSection('Gentle recommendations', report.recommendedHabits?.length ? report.recommendedHabits : [
+    'Track symptom timing and severity without treating patterns as diagnoses.',
+    'Keep a consistent sleep and hydration routine that feels realistic.',
+    'Use comfortable movement and rest as your energy allows.',
+  ]);
+  paragraph(report.symptomsOverview, 10.5);
+  paragraph(report.moodOverview, 10.5);
+  paragraph(report.lifestyleOverview, 10.5);
+  paragraph(report.nutritionOverview, 10.5);
+  bulletSection('30-day wellness plan', report.thirtyDayPlan?.length ? report.thirtyDayPlan : [
+    'Week 1: begin a simple daily symptom, mood, and sleep check-in.',
+    'Week 2: observe hydration and movement habits without pressure.',
+    'Week 3: add a comfortable routine for sleep, stress, or gentle movement.',
+    'Week 4: review patterns and decide which habits feel most useful.',
+  ]);
+  heading('When to seek medical care');
+  paragraph(report.medicalGuidance?.join(' ') || 'Seek prompt medical care for severe or sudden pain, very heavy bleeding, fainting, fever, pregnancy concerns, or symptoms that feel concerning or rapidly worsening.');
+  heading('A gentle final note');
+  paragraph(report.closingNote || 'This blueprint is educational and does not diagnose a condition or replace individualized medical advice.');
   const filename = demo ? 'FlowCare-Sample-Menstrual-Wellness-Blueprint.pdf' : 'FlowCare-Menstrual-Wellness-Blueprint.pdf';
   const blob = doc.output('blob');
   const url = URL.createObjectURL(blob);
@@ -122,12 +177,14 @@ function HealthSurvey() {
   const [completed, setCompleted] = useState(saved?.completed || false);
   const [demo, setDemo] = useState(saved?.demo || false);
   const [processing, setProcessing] = useState(false);
+  const [aiReport, setAiReport] = useState(saved?.aiReport || null);
+  const [generatingReport, setGeneratingReport] = useState(false);
   const [error, setError] = useState('');
   const { updateProfile } = useAuth();
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers, index, completed, demo }));
-  }, [answers, index, completed, demo]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ answers, index, completed, demo, aiReport }));
+  }, [answers, index, completed, demo, aiReport]);
 
   const question = index >= 0 ? questions[index] : null;
   const progress = index >= 0 ? ((index + 1) / questions.length) * 100 : 0;
@@ -167,6 +224,7 @@ function HealthSurvey() {
 
   async function complete(isDemo) {
     setProcessing(true);
+    setGeneratingReport(true);
     setError('');
     try {
       if (!isDemo) {
@@ -187,12 +245,19 @@ function HealthSurvey() {
           }).catch(() => undefined);
         }
       }
+      try {
+        const result = await generateWellnessReport(answers, isDemo);
+        setAiReport(result.report || null);
+      } catch {
+        setAiReport(null);
+      }
       setDemo(isDemo);
       setCompleted(true);
     } catch (requestError) {
       setError(getApiErrorMessage(requestError, 'Could not process your survey. Your answers are saved so you can retry.'));
     } finally {
       setProcessing(false);
+      setGeneratingReport(false);
     }
   }
 
@@ -208,11 +273,13 @@ function HealthSurvey() {
     setDemo(false);
     setCompleted(false);
     setAnswers({});
+    setAiReport(null);
     setIndex(-1);
   }
 
   function resetSurvey() {
     setAnswers({});
+    setAiReport(null);
     setIndex(-1);
     setCompleted(false);
     setDemo(false);
@@ -234,7 +301,7 @@ function HealthSurvey() {
         </div>
         {error && <div className="form-alert" role="alert">{error}</div>}
         <div className="survey-actions">
-          <button className="button button-primary" type="button" onClick={() => downloadPdf(answers, demo)}><Download size={17} /> Download my PDF</button>
+          <button className="button button-primary" type="button" disabled={generatingReport} onClick={() => downloadPdf(answers, demo, aiReport)}><Download size={17} /> {generatingReport ? 'Preparing PDF…' : 'Download my PDF'}</button>
           <button className="button button-outline" type="button" onClick={() => window.location.assign('/insights')}>Explore my insights</button>
           <button className="button button-muted" type="button" onClick={() => window.location.assign('/cycle-tracker')}>Go to cycle tracker</button>
         </div>

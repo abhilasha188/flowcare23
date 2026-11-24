@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const ChatMessage = require('../models/ChatMessage');
 const KnowledgeChunk = require('../models/KnowledgeChunk');
 const { answerQuestion } = require('../rag/ragService');
-const { getEmbeddingModelId, getGeminiConfig, getGeminiStatus } = require('../services/geminiService');
+const { generateWellnessReport, getEmbeddingModelId, getGeminiConfig, getGeminiStatus } = require('../services/geminiService');
 
 function getHealthMessage(database, gemini, knowledgeChunks, geminiChunks) {
   if (!database) return 'MongoDB is unavailable to the API service.';
@@ -153,6 +153,19 @@ async function feedback(req, res, next) {
   }
 }
 
+async function wellnessReport(req, res, next) {
+  try {
+    const report = await generateWellnessReport({
+      ...req.body.profile,
+      demo: Boolean(req.body.demo),
+    });
+    return res.status(200).json({ success: true, report, source: 'gemini' });
+  } catch (error) {
+    if (error?.statusCode) return next(error);
+    return next(error);
+  }
+}
+
 async function health(_req, res, next) {
   try {
     const [gemini, knowledgeChunks] = await Promise.all([
@@ -211,4 +224,5 @@ module.exports = {
   health,
   history,
   renameConversation,
+  wellnessReport,
 };

@@ -105,7 +105,7 @@ async function createEmbedding(text, taskType = 'RETRIEVAL_QUERY') {
   return embedding;
 }
 
-async function generateAnswer(messages) {
+async function generateAnswer(messages, outputTokenOverride) {
   const config = getGeminiConfig();
   if (!config.apiKey) throw configurationError('GEMINI_API_KEY is not configured on the API server.');
 
@@ -128,7 +128,7 @@ async function generateAnswer(messages) {
         ...(systemInstruction ? { systemInstruction: { parts: [{ text: systemInstruction }] } } : {}),
         contents,
         generationConfig: {
-          maxOutputTokens: config.maxOutputTokens,
+          maxOutputTokens: outputTokenOverride || config.maxOutputTokens,
           temperature: config.temperature,
         },
       },
@@ -145,6 +145,33 @@ async function generateAnswer(messages) {
     .trim();
   if (!answer) throw invalidResponseError('Gemini returned an empty answer.');
   return answer;
+}
+
+async function generateWellnessReport(profile) {
+  const safeProfile = JSON.stringify(profile, null, 2).slice(0, 7000);
+  const answer = await generateAnswer([
+    {
+      role: 'system',
+      content: [
+        'You are a menstrual health wellness educator. Create a detailed but calm, non-alarming personalized guide.',
+        'Use only the supplied user-reported facts. Never invent history, diagnose PCOS, endometriosis, hormonal imbalance, or any condition.',
+        'Do not prescribe medication or supplements. Clearly label patterns and cycle dates as reported or estimated.',
+        'Do not claim that one symptom caused another. Include general educational context and conservative medical-care guidance.',
+        'Respond as valid JSON only, with these keys: profileSummary, cycleOverview, symptomsOverview, moodOverview, lifestyleOverview, nutritionOverview, priorities, recommendedHabits, thirtyDayPlan, medicalGuidance, closingNote.',
+        'Each value must be a concise array of strings, except profileSummary, cycleOverview, and closingNote, which may be strings.',
+      ].join('\n'),
+    },
+    {
+      role: 'user',
+      content: `Create a personally relevant report from this consented survey profile:\n${safeProfile}`,
+    },
+  ], 1800);
+  const cleaned = answer.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    throw invalidResponseError('Gemini returned a wellness report in an unexpected format.');
+  }
 }
 
 async function getGeminiStatus() {
@@ -200,6 +227,7 @@ module.exports = {
   classifyGeminiError,
   createEmbedding,
   generateAnswer,
+  generateWellnessReport,
   getEmbeddingModelId,
   getGeminiConfig,
   getGeminiStatus,

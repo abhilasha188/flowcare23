@@ -12,6 +12,7 @@ const {
   health,
   history,
   renameConversation,
+  wellnessReport,
 } = require('../controllers/aiController');
 
 const router = express.Router();
@@ -42,6 +43,20 @@ router.post(
   ],
   validateRequest,
   asyncHandler(chat),
+);
+router.post(
+  '/wellness-report',
+  chatLimiter,
+  csrfProtection,
+  [
+    body('profile').isObject().withMessage('A survey profile is required.'),
+    body('profile').custom((profile) => {
+      if (Object.keys(profile).length > 40) throw new Error('Survey profile is too large.');
+      return true;
+    }),
+  ],
+  validateRequest,
+  asyncHandler(wellnessReport),
 );
 router.get(
   '/history',

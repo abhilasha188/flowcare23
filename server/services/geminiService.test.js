@@ -8,6 +8,7 @@ const {
   getEmbeddingModelId,
   getGeminiConfig,
   getGeminiStatus,
+  generateWellnessReport,
 } = require('./geminiService');
 
 const environmentKeys = [
